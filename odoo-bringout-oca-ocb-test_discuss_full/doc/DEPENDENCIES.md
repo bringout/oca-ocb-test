@@ -2,12 +2,12 @@
 
 This addon depends on:
 
-- [calendar](../../../../../oca-ocb-technical/odoo-bringout-oca-ocb-calendar)
-- [crm](../../../../../oca-ocb-crm/odoo-bringout-oca-ocb-crm)
-- [crm_livechat](../../../../../oca-ocb-crm/odoo-bringout-oca-ocb-crm_livechat)
-- [hr_holidays](../../../../../oca-ocb-hr/odoo-bringout-oca-ocb-hr_holidays)
-- [im_livechat](../../../../../oca-ocb-mail/odoo-bringout-oca-ocb-im_livechat)
-- [mail](../../../../../oca-ocb-core/odoo-bringout-oca-ocb-mail)
-- [mail_bot](../../../../../oca-ocb-core/odoo-bringout-oca-ocb-mail_bot)
-- [note](../../../../../oca-ocb-technical/odoo-bringout-oca-ocb-note)
-- [website_livechat](../../../../../oca-ocb-website/odoo-bringout-oca-ocb-website_livechat)
+- [calendar](https://github.com/bringout/oca-ocb-technical)
+- [crm](https://github.com/bringout/oca-ocb-crm)
+- [crm_livechat](https://github.com/bringout/oca-ocb-crm)
+- [hr_holidays](https://github.com/bringout/oca-ocb-hr)
+- [im_livechat](https://github.com/bringout/oca-ocb-mail)
+- [mail](https://github.com/bringout/oca-ocb-core)
+- [mail_bot](https://github.com/bringout/oca-ocb-core)
+- [note](https://github.com/bringout/oca-ocb-technical)
+- [website_livechat](https://github.com/bringout/oca-ocb-website)
