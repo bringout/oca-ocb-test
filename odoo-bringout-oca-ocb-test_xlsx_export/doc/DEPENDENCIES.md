@@ -2,5 +2,5 @@
 
 This addon depends on:
 
-- [web](https://github.com/bringout/oca-ocb-core/tree/e9ca19c0c154b94934ea86258814c560c4e016f4/odoo-bringout-oca-ocb-web)
-- [test_mail](https://github.com/bringout/oca-ocb-test/tree/0fe8a62619aef53731b7baafcb018130ef903ff8/odoo-bringout-oca-ocb-test_mail)
+- [web](https://github.com/bringout/oca-ocb-core/tree/11a704b400b8bf0763643e267bf123858a85c9e6/odoo-bringout-oca-ocb-web)
+- [test_mail](https://github.com/bringout/oca-ocb-test/tree/954590ff92e0e6206b578f762f8d9bf8bc62fe2c/odoo-bringout-oca-ocb-test_mail)
