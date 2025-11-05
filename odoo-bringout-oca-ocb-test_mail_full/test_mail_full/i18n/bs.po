@@ -17,21 +17,16 @@ msgstr ""
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_needaction
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_needaction
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_needaction
 msgid "Action Needed"
 msgstr "Potrebna akcija"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_attachment_count
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_attachment_count
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_attachment_count
 msgid "Attachment Count"
 msgstr "Broj priloga"
 
 #. module: test_mail_full
 #: model:ir.model,name:test_mail_full.model_mail_test_sms
-#: model:ir.model,name:test_mail_full.model_mail_test_sms_bl
 msgid "Chatter Model for SMS Gateway"
 msgstr "Chatter model za SMS pristupnik"
 
@@ -42,35 +37,26 @@ msgstr "Chatter model za SMS pristupnik (samo partner)"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__create_uid
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__create_uid
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__create_uid
 msgid "Created by"
 msgstr "Kreirao"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__create_date
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__create_date
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__create_date
 msgid "Created on"
 msgstr "Kreirano"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__customer_id
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__customer_id
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__partner_id
 msgid "Customer"
 msgstr "Kupac"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__display_name
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__display_name
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__display_name
 msgid "Display Name"
 msgstr "Prikazani naziv"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__email_from
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__email_from
 msgid "Email From"
 msgstr "Email od"
 
@@ -80,52 +66,36 @@ msgid ""
 "Field used to store sanitized phone number. Helps speeding up searches and "
 "comparisons."
 msgstr ""
+"Polje koje se koristi za pohranu sanitiziranog telefonskog broja. Pomaže "
+"ubrzati pretraživanja i usporedbe."
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_follower_ids
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_follower_ids
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_follower_ids
 msgid "Followers"
 msgstr "Pratioci"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_channel_ids
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_channel_ids
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_channel_ids
 msgid "Followers (Channels)"
 msgstr "Pratioci (Kanali)"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_partner_ids
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_partner_ids
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_partner_ids
 msgid "Followers (Partners)"
 msgstr "Pratioci (Partneri)"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__id
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__id
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__id
 msgid "ID"
 msgstr "ID"
 
 #. module: test_mail_full
 #: model:ir.model.fields,help:test_mail_full.field_mail_test_sms__message_needaction
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms__message_unread
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_bl__message_needaction
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_bl__message_unread
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_partner__message_needaction
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_partner__message_unread
 msgid "If checked, new messages require your attention."
 msgstr "Ako je zakačeno, nove poruke će zahtjevati vašu pažnju"
 
 #. module: test_mail_full
 #: model:ir.model.fields,help:test_mail_full.field_mail_test_sms__message_has_error
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms__message_has_sms_error
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_bl__message_has_error
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_bl__message_has_sms_error
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_partner__message_has_error
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_partner__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
 msgstr "Ako je označeno neke poruke mogu imati grešku u dostavi."
 
@@ -135,101 +105,76 @@ msgid ""
 "If the email address is on the blacklist, the contact won't receive mass "
 "mailing anymore, from any list"
 msgstr ""
+"Ako je adresa e-pošte na crnoj listi, kontakt više neće primati masovnu "
+"poštu, ni s jedne liste"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_is_follower
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_is_follower
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_is_follower
 msgid "Is Follower"
 msgstr "Pratilac"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms____last_update
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl____last_update
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner____last_update
 msgid "Last Modified on"
 msgstr "Zadnje mijenjano"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__write_uid
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__write_uid
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__write_uid
 msgid "Last Updated by"
 msgstr "Zadnji ažurirao"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__write_date
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__write_date
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__write_date
 msgid "Last Updated on"
 msgstr "Zadnje ažurirano"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_main_attachment_id
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_main_attachment_id
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_main_attachment_id
 msgid "Main Attachment"
 msgstr "Glavna zakačka"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_has_error
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_has_error
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_has_error
 msgid "Message Delivery error"
 msgstr "Greška pri isporuci poruke"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_ids
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_ids
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_ids
 msgid "Messages"
 msgstr "Poruke"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__mobile_nbr
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__mobile_nbr
 msgid "Mobile Nbr"
 msgstr "Broj mobilnog"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__name
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__name
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__name
 msgid "Name"
 msgstr "Naziv:"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_needaction_counter
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_needaction_counter
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_needaction_counter
 msgid "Number of Actions"
 msgstr "Broj akcija"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_has_error_counter
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_has_error_counter
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_has_error_counter
 msgid "Number of errors"
 msgstr "Broj grešaka"
 
 #. module: test_mail_full
 #: model:ir.model.fields,help:test_mail_full.field_mail_test_sms__message_needaction_counter
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_bl__message_needaction_counter
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_partner__message_needaction_counter
 msgid "Number of messages requiring action"
 msgstr "Broj poruka koje zahtijevaju aktivnost"
 
 #. module: test_mail_full
 #: model:ir.model.fields,help:test_mail_full.field_mail_test_sms__message_has_error_counter
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_bl__message_has_error_counter
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_partner__message_has_error_counter
 msgid "Number of messages with delivery error"
 msgstr "Broj poruka sa greškama pri isporuci"
 
 #. module: test_mail_full
 #: model:ir.model.fields,help:test_mail_full.field_mail_test_sms__message_unread_counter
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_bl__message_unread_counter
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_partner__message_unread_counter
 msgid "Number of unread messages"
 msgstr "Broj nepročitanih poruka"
 
@@ -240,14 +185,11 @@ msgstr "Telefon je stavljen na crnu listu"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__phone_nbr
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__phone_nbr
 msgid "Phone Nbr"
 msgstr "Broj telefona"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_has_sms_error
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_has_sms_error
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_has_sms_error
 msgid "SMS Delivery error"
 msgstr "Greška u slanju SMSa"
 
@@ -258,34 +200,25 @@ msgstr "Sanirani broj"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__subject
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__subject
 msgid "Subject"
 msgstr "Tema"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_unread
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_unread
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_unread
 msgid "Unread Messages"
 msgstr "Nepročitane poruke"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_unread_counter
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__message_unread_counter
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__message_unread_counter
 msgid "Unread Messages Counter"
 msgstr "Brojač nepročitanih poruka"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__website_message_ids
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_bl__website_message_ids
-#: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms_partner__website_message_ids
 msgid "Website Messages"
 msgstr "Poruke sa website-a"
 
 #. module: test_mail_full
 #: model:ir.model.fields,help:test_mail_full.field_mail_test_sms__website_message_ids
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_bl__website_message_ids
-#: model:ir.model.fields,help:test_mail_full.field_mail_test_sms_partner__website_message_ids
 msgid "Website communication history"
 msgstr "Povijest komunikacije Web stranice"
