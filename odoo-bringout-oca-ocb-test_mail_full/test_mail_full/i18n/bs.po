@@ -18,7 +18,7 @@ msgstr ""
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_needaction
 msgid "Action Needed"
-msgstr "Potrebna akcija"
+msgstr "Potrebna radnja"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_attachment_count
@@ -72,7 +72,7 @@ msgstr ""
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_follower_ids
 msgid "Followers"
-msgstr "Pratioci"
+msgstr "Pratitelji"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_channel_ids
@@ -82,7 +82,7 @@ msgstr "Pratioci (Kanali)"
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_partner_ids
 msgid "Followers (Partners)"
-msgstr "Pratioci (Partneri)"
+msgstr "Pratitelji (partneri)"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__id
@@ -116,17 +116,17 @@ msgstr "Pratilac"
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms____last_update
 msgid "Last Modified on"
-msgstr "Zadnje mijenjano"
+msgstr "Zadnja izmjena na"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__write_uid
 msgid "Last Updated by"
-msgstr "Zadnji ažurirao"
+msgstr "Zadnje ažuriranje izvršio"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__write_date
 msgid "Last Updated on"
-msgstr "Zadnje ažurirano"
+msgstr "Zadnje ažuriranje na"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_main_attachment_id
@@ -141,7 +141,7 @@ msgstr "Greška pri isporuci poruke"
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__message_ids
 msgid "Messages"
-msgstr "Poruke"
+msgstr "Nepročitane poruke"
 
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__mobile_nbr
@@ -216,7 +216,7 @@ msgstr "Brojač nepročitanih poruka"
 #. module: test_mail_full
 #: model:ir.model.fields,field_description:test_mail_full.field_mail_test_sms__website_message_ids
 msgid "Website Messages"
-msgstr "Poruke sa website-a"
+msgstr "Nepročitane poruke"
 
 #. module: test_mail_full
 #: model:ir.model.fields,help:test_mail_full.field_mail_test_sms__website_message_ids
