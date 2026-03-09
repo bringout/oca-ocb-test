@@ -5,16 +5,16 @@ from odoo import api, fields, models
 
 
 class MailTestPortal(models.Model):
-    """ A model intheriting from mail.thread with some fields used for portal
-    sharing, like a partner, ..."""
-    _description = 'Chatter Model for Portal'
+    """ A model inheriting from mail.thread and portal.mixin with some fields
+    used for portal sharing, like a partner, ..."""
     _name = 'mail.test.portal'
+    _description = 'Chatter Model for Portal'
     _inherit = [
-        'mail.thread',
         'portal.mixin',
+        'mail.thread',
     ]
 
-    name = fields.Char()
+    name = fields.Char('Name')
     partner_id = fields.Many2one('res.partner', 'Customer')
     user_id = fields.Many2one(comodel_name='res.users', string="Salesperson")
 
@@ -26,8 +26,8 @@ class MailTestPortal(models.Model):
 
 class MailTestPortalNoPartner(models.Model):
     """ A model inheriting from portal, but without any partner field """
-    _description = 'Chatter Model for Portal (no partner field)'
     _name = 'mail.test.portal.no.partner'
+    _description = 'Chatter Model for Portal (no partner field)'
     _inherit = [
         'mail.thread',
         'portal.mixin',
@@ -66,26 +66,24 @@ class MailTestPortalPublicAccessAction(models.Model):
 
 
 class MailTestRating(models.Model):
-    """ A model inheriting from mail.thread with some fields used for SMS
+    """ A model inheriting from rating.mixin (which inherits from mail.thread) with some fields used for SMS
     gateway, like a partner, a specific mobile phone, ... """
-    _description = 'Rating Model (ticket-like)'
     _name = 'mail.test.rating'
+    _description = 'Rating Model (ticket-like)'
     _inherit = [
-        'mail.thread',
-        'mail.activity.mixin',
         'rating.mixin',
+        'mail.activity.mixin',
         'portal.mixin',
     ]
     _mailing_enabled = True
-    _order = 'name asc, id asc'
+    _order = 'id asc'
 
-    name = fields.Char()
-    subject = fields.Char()
+    name = fields.Char('Name')
+    subject = fields.Char('Subject')
     company_id = fields.Many2one('res.company', 'Company')
     customer_id = fields.Many2one('res.partner', 'Customer')
-    email_from = fields.Char(compute='_compute_email_from', precompute=True, readonly=False, store=True)
-    mobile_nbr = fields.Char(compute='_compute_mobile_nbr', precompute=True, readonly=False, store=True)
-    phone_nbr = fields.Char(compute='_compute_phone_nbr', precompute=True, readonly=False, store=True)
+    email_from = fields.Char('From', compute='_compute_email_from', precompute=True, readonly=False, store=True)
+    phone_nbr = fields.Char('Phone Number', compute='_compute_phone_nbr', precompute=True, readonly=False, store=True)
     user_id = fields.Many2one('res.users', 'Responsible', tracking=1)
 
     @api.depends('customer_id')
@@ -97,14 +95,6 @@ class MailTestRating(models.Model):
                 rating.email_from = False
 
     @api.depends('customer_id')
-    def _compute_mobile_nbr(self):
-        for rating in self:
-            if rating.customer_id.mobile:
-                rating.mobile_nbr = rating.customer_id.mobile
-            elif not rating.mobile_nbr:
-                rating.mobile_nbr = False
-
-    @api.depends('customer_id')
     def _compute_phone_nbr(self):
         for rating in self:
             if rating.customer_id.phone:
@@ -112,11 +102,50 @@ class MailTestRating(models.Model):
             elif not rating.phone_nbr:
                 rating.phone_nbr = False
 
-    def _mail_get_partner_fields(self):
+    def _mail_get_partner_fields(self, introspect_fields=False):
         return ['customer_id']
+
+    def _phone_get_number_fields(self):
+        return ['phone_nbr']
 
     def _rating_apply_get_default_subtype_id(self):
         return self.env['ir.model.data']._xmlid_to_res_id("test_mail_full.mt_mail_test_rating_rating_done")
 
     def _rating_get_partner(self):
         return self.customer_id
+
+    @api.model
+    def _allow_publish_rating_stats(self):
+        return True
+
+
+class MailTestRatingThread(models.Model):
+    """A model inheriting from mail.thread with minimal fields for testing
+     rating submission without the rating mixin but with the same test code:
+
+     - partner_id: value returned by the base _rating_get_partner method
+     - user_id: value returned by the base _rating_get_operator method
+     """
+    _name = 'mail.test.rating.thread'
+    _description = 'Model for testing rating without the rating mixin'
+    _inherit = ['mail.thread']
+    _order = 'name asc, id asc'
+
+    name = fields.Char('Name')
+    customer_id = fields.Many2one('res.partner', 'Customer')
+    user_id = fields.Many2one('res.users', 'Responsible', tracking=1)
+
+    def _mail_get_partner_fields(self, introspect_fields=False):
+        return ['customer_id']
+
+    def _rating_get_partner(self):
+        return self.customer_id or super()._rating_get_partner()
+
+
+class MailTestRatingThreadRead(models.Model):
+    """Same as MailTestRatingThread but post accessible on read by portal users."""
+    _name = 'mail.test.rating.thread.read'
+    _description = "Read-post rating model"
+    _inherit = ["mail.test.rating.thread"]
+    _order = "name asc, id asc"
+    _mail_post_access = "read"

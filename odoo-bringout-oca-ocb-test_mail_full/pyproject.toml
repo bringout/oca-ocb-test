@@ -1,22 +1,24 @@
 [project]
 name = "odoo-bringout-oca-ocb-test_mail_full"
 version = "16.0.0"
-description = "Mail Tests (Full) - Mail Tests: performances and tests specific to mail with all sub-modules"
+description = "Mail Tests (Full) - 
+        Mail Tests: performances and tests specific to mail with all sub-modules
+        "
 authors = [
     { name = "Ernad Husremovic", email = "hernad@bring.out.ba" }
 ]
 dependencies = [
-    "odoo-bringout-oca-ocb-mail>=16.0.0",
-    "odoo-bringout-oca-ocb-mail_bot>=16.0.0",
-    "odoo-bringout-oca-ocb-portal>=16.0.0",
-    "odoo-bringout-oca-ocb-rating>=16.0.0",
-    "odoo-bringout-oca-ocb-mass_mailing>=16.0.0",
-    "odoo-bringout-oca-ocb-mass_mailing_sms>=16.0.0",
-    "odoo-bringout-oca-ocb-phone_validation>=16.0.0",
-    "odoo-bringout-oca-ocb-sms>=16.0.0",
-    "odoo-bringout-oca-ocb-test_mail>=16.0.0",
-    "odoo-bringout-oca-ocb-test_mail_sms>=16.0.0",
-    "odoo-bringout-oca-ocb-test_mass_mailing>=16.0.0",
+    "odoo-bringout-oca-ocb-mail>=19.0.0",
+    "odoo-bringout-oca-ocb-mail_bot>=19.0.0",
+    "odoo-bringout-oca-ocb-portal>=19.0.0",
+    "odoo-bringout-oca-ocb-rating>=19.0.0",
+    "odoo-bringout-oca-ocb-mass_mailing>=19.0.0",
+    "odoo-bringout-oca-ocb-mass_mailing_sms>=19.0.0",
+    "odoo-bringout-oca-ocb-phone_validation>=19.0.0",
+    "odoo-bringout-oca-ocb-sms>=19.0.0",
+    "odoo-bringout-oca-ocb-test_mail>=19.0.0",
+    "odoo-bringout-oca-ocb-test_mail_sms>=19.0.0",
+    "odoo-bringout-oca-ocb-test_mass_mailing>=19.0.0",
     "requests>=2.25.1"
 ]
 readme = "README.md"
@@ -26,7 +28,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Office/Business",
 ]

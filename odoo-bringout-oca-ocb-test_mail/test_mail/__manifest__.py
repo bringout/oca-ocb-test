@@ -11,7 +11,7 @@ present in a separate module as it contains models used only to perform
 tests independently to functional aspects of other models. """,
     'depends': [
         'mail',
-        'test_performance',
+        'test_orm',
     ],
     'data': [
         'security/ir.model.access.csv',
@@ -21,16 +21,14 @@ tests independently to functional aspects of other models. """,
         'data/subtype_data.xml',
     ],
     'assets': {
-        'web.qunit_suite_tests': [
-            'test_mail/static/tests/*',
+        'web.assets_unit_tests': [
+            'test_mail/static/tests/**/*',
         ],
-        'web.qunit_mobile_suite_tests': [
-            'test_mail/static/tests/mobile/activity_tests.js',
-        ],
-        'web.tests_assets': [
-            'test_mail/static/tests/helpers/*',
+        'web.assets_tests': [
+            'test_mail/static/tests/tours/*',
         ],
     },
     'installable': True,
+    'author': 'Odoo S.A.',
     'license': 'LGPL-3',
 }

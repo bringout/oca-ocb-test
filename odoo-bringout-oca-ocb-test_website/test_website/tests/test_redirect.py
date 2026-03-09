@@ -3,7 +3,6 @@
 import odoo
 from odoo.tests import HttpCase, tagged
 from odoo.tools import mute_logger
-from odoo.addons.http_routing.models.ir_http import slug
 
 from unittest.mock import patch
 
@@ -19,7 +18,7 @@ class TestRedirect(HttpCase):
             'login': 'portal_user',
             'password': 'portal_user',
             'email': 'portal_user@mail.com',
-            'groups_id': [(6, 0, [self.env.ref('base.group_portal').id])]
+            'group_ids': [(6, 0, [self.env.ref('base.group_portal').id])]
         })
 
     def test_01_redirect_308_model_converter(self):
@@ -37,7 +36,7 @@ class TestRedirect(HttpCase):
                 - Correct & working redirect as logged in user
                 - Correct replace of url_for() URLs in DOM
         """
-        url = '/test_website/country/' + slug(country_ad)
+        url = '/test_website/country/' + self.env['ir.http']._slug(country_ad)
         redirect_url = url.replace('test_website', 'redirected')
 
         # [Public User] Open the original url and check redirect OK
@@ -57,12 +56,12 @@ class TestRedirect(HttpCase):
         self.assertTrue(redirect_url in r.text, "Ensure the url_for has replaced the href URL in the DOM")
 
     def test_redirect_308_by_method_url_rewrite(self):
-        self.env['website.rewrite'].create({
+        self.env['website.rewrite'].create([{
             'name': 'Test Website Redirect',
             'redirect_type': '308',
             'url_from': url_from,
             'url_to': f'{url_from}_new',
-        } for url_from in ('/get', '/post', '/get_post'))
+        } for url_from in ('/get', '/post', '/get_post')])
 
         self.env.ref('test_website.test_view').arch = '''
             <t>
@@ -90,7 +89,7 @@ class TestRedirect(HttpCase):
         rec_published = self.env['test.model'].create({'name': 'name', 'website_published': True})
         rec_unpublished = self.env['test.model'].create({'name': 'name', 'website_published': False})
 
-        WebsiteHttp = odoo.addons.website.models.ir_http.Http
+        WebsiteHttp = odoo.addons.website.models.ir_http.IrHttp
 
         def _get_error_html(env, code, value):
             return str(code).split('_')[-1], f"CUSTOM {code}"
@@ -201,7 +200,7 @@ class TestRedirect(HttpCase):
             'name': '301 test record',
             'is_published': True,
         })
-        url_rec1 = '/test_website/200/' + slug(rec1)
+        url_rec1 = '/test_website/200/' + self.env['ir.http']._slug(rec1)
         r = self.url_open(url_rec1)
         self.assertEqual(r.status_code, 200)
 
@@ -223,7 +222,7 @@ class TestRedirect(HttpCase):
         # 4. Accessing unpublished record with redirect to another published
         # record: expecting redirect to that record
         rec2 = rec1.copy({'is_published': True})
-        url_rec2 = '/test_website/200/' + slug(rec2)
+        url_rec2 = '/test_website/200/' + self.env['ir.http']._slug(rec2)
         redirect.url_to = url_rec2
         r = self.url_open(url_rec1)
         self.assertEqual(r.status_code, 200)
@@ -264,7 +263,7 @@ class TestRedirect(HttpCase):
             'name': '301 test record',
             'is_published': True,
         })
-        url_rec1 = f"/test_countries_308/{slug(rec1)}"
+        url_rec1 = f"/test_countries_308/{self.env['ir.http']._slug(rec1)}"
 
         resp = self.url_open("/test_countries_308", allow_redirects=False)
         self.assertEqual(resp.status_code, 308)
