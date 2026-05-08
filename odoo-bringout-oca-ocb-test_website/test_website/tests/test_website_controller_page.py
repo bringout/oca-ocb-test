@@ -24,7 +24,7 @@ class TestWebsiteControllerPage(HttpCase):
         cls.listing_view = cls.env["ir.ui.view"].create({
             "type": "qweb",
             "model": cls.model.model,
-            "arch": """<t t-call="website.layout">
+            "arch": """<t t-call="website.layout" true="True">
                 <t t-set="_activeClasses" t-translation="off">border-primary</t>
                 <div t-attf-class="listing_layout_switcher btn-group ms-3" t-att-data-active-classes="_activeClasses" t-att-data-view-id="view_id">
                     <input type="radio" class="btn-check" name="wstudio_layout" id="o_wstudio_apply_grid" value="grid" t-att-checked="'checked' if layout_mode != 'list' else None"/>
@@ -72,7 +72,7 @@ class TestWebsiteControllerPage(HttpCase):
         self.env["ir.model.access"].search([("model_id", "=", self.model.id)]).perm_read = False
 
         with self.assertRaises(AccessError) as cm:
-            self.env["website.controller.page"].with_user(2).create({
+            self.env["website.controller.page"].with_user(self.ref('base.user_admin')).create({
                 "name": "Exposed Model Read",
                 "website_id": False,
                 "view_id": self.single_view.id,
@@ -161,10 +161,10 @@ class TestWebsiteControllerPage(HttpCase):
 
     def test_default_layout(self):
         self.assertEqual(self.listing_controller_page.default_layout, 'grid')
-        self.start_tour('/model/exposed-model', 'website_controller_page_listing_layout', login='admin')
+        self.start_tour(self.env["website"].get_client_action_url('/model/exposed-model', True), 'website_controller_page_listing_layout', login='admin')
         self.assertEqual(self.listing_controller_page.default_layout, 'list')
         #check that the user that has not previously interacted with the layout switcher will prompt on the default layout
-        self.start_tour('/model/exposed-model', 'website_controller_page_default_page_check', login='admin')
+        self.start_tour(self.env["website"].get_client_action_url('/model/exposed-model', False), 'website_controller_page_default_page_check', login='admin')
 
     def test_model_constrains(self):
         def get_model_meta_params(model_name):

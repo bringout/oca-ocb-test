@@ -26,35 +26,23 @@ from odoo.tools.mail import email_normalize, email_split_and_format, formataddr
 @tagged('mail_gateway')
 class TestEmailParsing(MailCommon):
 
-    def test_message_parse_and_replace_binary_octetstream(self):
-        """ Incoming email containing a wrong Content-Type as described in RFC2046/section-3 """
-        received_mail = self.from_string(test_mail_data.MAIL_MULTIPART_BINARY_OCTET_STREAM)
-        with self.assertLogs('odoo.addons.mail.models.mail_thread', level="WARNING") as capture:
-            extracted_mail = self.env['mail.thread']._message_parse_extract_payload(received_mail, {})
+    def test_message_parse_and_replace_bad_content_type(self):
+        """Incoming emails with unsupported attachment Content-Types should not crash parsing."""
+        for content_type in ('binary/octet-stream', '*/*', 'bin/plain'):
+            with self.subTest(content_type=content_type):
+                received_mail = self.format(test_mail_data.MAIL_PDF_MIME_TEMPLATE, pdf_mime=content_type)
+                self.assertIn(f"Content-Type: {content_type}", received_mail, f"{content_type} content-type not found")
+                with self.assertLogs("odoo.addons.mail.models.mail_thread", level="WARNING") as capture:
+                    extracted_mail = self.env['mail.thread'].message_parse(self.from_string(received_mail))
 
-        self.assertEqual(len(extracted_mail['attachments']), 1)
-        attachment = extracted_mail['attachments'][0]
-        self.assertEqual(attachment.fname, 'hello_world.dat')
-        self.assertEqual(attachment.content, b'Hello world\n')
-        self.assertEqual(capture.output, [
-            ("WARNING:odoo.addons.mail.models.mail_thread:Message containing an unexpected "
-             "Content-Type 'binary/octet-stream', assuming 'application/octet-stream'"),
-        ])
-
-    def test_message_parse_and_replace_wildcard(self):
-        """Incoming email containing a wrong Content-Type (*/*) as described in RFC2046/section-3"""
-        mail_with_wildcard_mime = self.format(test_mail_data.MAIL_PDF_MIME_TEMPLATE, pdf_mime="*/*")
-        self.assertIn("Content-Type: */*", mail_with_wildcard_mime, "Wildcard for content-type not found")
-        with self.assertLogs("odoo.addons.mail.models.mail_thread", level="WARNING") as capture:
-            extracted_mail = self.env['mail.thread'].message_parse(self.from_string(mail_with_wildcard_mime))
-
-        self.assertEqual(len(extracted_mail['attachments']), 1)
-        attachment = extracted_mail['attachments'][0]
-        self.assertEqual(attachment.fname, 'scan_soraya.lernout_1691652648.pdf')
-        self.assertEqual(capture.output, [
-            ("WARNING:odoo.addons.mail.models.mail_thread:Message containing an unexpected "
-             "Content-Type '*/*', assuming 'application/octet-stream'"),
-        ])
+                self.assertEqual(len(extracted_mail['attachments']), 1)
+                attachment = extracted_mail['attachments'][0]
+                self.assertEqual(attachment.fname, 'scan_soraya.lernout_1691652648.pdf')
+                self.assertEqual(attachment.content, test_mail_data.PDF_PARSED)
+                self.assertEqual(capture.output, [
+                    ("WARNING:odoo.addons.mail.models.mail_thread:Message containing an unexpected "
+                    f"Content-Type '{content_type}', assuming 'application/octet-stream'"),
+                ])
 
     def test_message_parse_body(self):
         # test pure plaintext
@@ -1053,7 +1041,7 @@ class TestMailgateway(MailGatewayCommon):
                 (test_domain, test_domain),
             ], [True, True, False, True]):
             with self.subTest(alias_right_part=alias_right_part, allowed_domain=allowed_domain):
-                self.env['ir.config_parameter'].set_param('mail.catchall.domain.allowed', allowed_domain)
+                self.env['ir.config_parameter'].set_str('mail.catchall.domain.allowed', allowed_domain)
 
                 subject = f'Test wigh {alias_right_part}-{allowed_domain}'
                 email_to = f'{self.alias.alias_name}@{self.alias_domain}, {new_alias_2.alias_name}@{alias_right_part}'
@@ -1231,8 +1219,10 @@ class TestMailgateway(MailGatewayCommon):
         self.assertEqual(self.test_record.message_bounce, 0)
 
         notification = self.env['mail.notification'].create({
+            'notification_type': 'email',
             'mail_message_id': self.fake_email.id,
             'res_partner_id': self.partner_1.id,
+            'mail_email_address': self.partner_1.email_normalized,
         })
 
         bounce_email_to = f'{self.alias_bounce}@{self.alias_domain}'
@@ -1558,6 +1548,15 @@ class TestMailgateway(MailGatewayCommon):
                 date=False,
                 parent_id=reply1.id,
             )
+
+        self.env.cr.execute("""
+            UPDATE mail_message
+            SET date = NULL, create_date = NULL
+            WHERE id = %s
+        """, (old_disturbing_msg.id,))
+        self.env.invalidate_all()
+
+        self.assertFalse(old_disturbing_msg.create_date)
         self.assertFalse(old_disturbing_msg.date)
 
         with self.mock_datetime_and_now(datetime(2025, 11, 19, 10, 30, 0)):
@@ -2029,8 +2028,8 @@ class TestMailGatewayLoops(MailGatewayCommon):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.env['ir.config_parameter'].sudo().set_param('mail.gateway.loop.minutes', 30)
-        cls.env['ir.config_parameter'].sudo().set_param('mail.gateway.loop.threshold', 5)
+        cls.env['ir.config_parameter'].sudo().set_int('mail.gateway.loop.minutes', 30)
+        cls.env['ir.config_parameter'].sudo().set_int('mail.gateway.loop.threshold', 5)
 
         cls.env['mail.gateway.allowed'].create([
             {'email': 'Bob@EXAMPLE.com'},
@@ -2739,46 +2738,3 @@ class TestMailGatewayReplies(MailGatewayCommon):
                 'subtype': 'mail.mt_comment',
             }],
         )
-
-
-@tagged('mail_gateway', 'mail_thread')
-class TestMailThreadCC(MailCommon):
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestMailThreadCC, cls).setUpClass()
-
-        cls.email_from = 'Sylvie Lelitre <test.sylvie.lelitre@agrolait.com>'
-        cls.alias = cls.env['mail.alias'].create({
-            'alias_contact': 'everyone',
-            'alias_domain_id': cls.mail_alias_domain.id,
-            'alias_model_id': cls.env['ir.model']._get('mail.test.cc').id,
-            'alias_name': 'cc_record',
-        })
-
-    @mute_logger('odoo.addons.mail.models.mail_thread')
-    def test_message_cc_new(self):
-        record = self.format_and_process(MAIL_TEMPLATE, self.email_from, f'cc_record@{self.alias_domain}',
-                                         cc='cc1@example.com, cc2@example.com', target_model='mail.test.cc')
-        cc = email_split_and_format(record.email_cc)
-        self.assertEqual(sorted(cc), ['cc1@example.com', 'cc2@example.com'])
-
-    @mute_logger('odoo.addons.mail.models.mail_thread')
-    def test_message_cc_update_with_old(self):
-        record = self.env['mail.test.cc'].create({'email_cc': 'cc1 <cc1@example.com>, cc2@example.com'})
-        self.alias.write({'alias_force_thread_id': record.id})
-
-        self.format_and_process(MAIL_TEMPLATE, self.email_from, f'cc_record@{self.alias_domain}',
-                                cc='cc2 <cc2@example.com>, cc3@example.com', target_model='mail.test.cc')
-        cc = email_split_and_format(record.email_cc)
-        self.assertEqual(sorted(cc), ['"cc1" <cc1@example.com>', 'cc2@example.com', 'cc3@example.com'], 'new cc should have been added on record (unique)')
-
-    @mute_logger('odoo.addons.mail.models.mail_thread')
-    def test_message_cc_update_no_old(self):
-        record = self.env['mail.test.cc'].create({})
-        self.alias.write({'alias_force_thread_id': record.id})
-
-        self.format_and_process(MAIL_TEMPLATE, self.email_from, f'cc_record@{self.alias_domain}',
-                                cc='cc2 <cc2@example.com>, cc3@example.com', target_model='mail.test.cc')
-        cc = email_split_and_format(record.email_cc)
-        self.assertEqual(sorted(cc), ['"cc2" <cc2@example.com>', 'cc3@example.com'], 'new cc should have been added on record (unique)')

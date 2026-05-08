@@ -1,18 +1,22 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-import base64
 import io
 import re
-from PIL import Image
 from unittest.mock import patch
+
+from PIL import Image
+
 import odoo
 from odoo.fields import Command
 from odoo.tests import tagged
+from odoo.tools import BinaryBytes
+
 from odoo.addons.website.tests.test_performance import TestWebsitePerformanceCommon
 from odoo.addons.website_sale.tests.common import WebsiteSaleCommon
-from odoo.addons.website_sale.tests.test_website_sale_pricelist import TestWebsitePriceList
+from odoo.addons.website_sale.tests.test_pricelist import TestWebsitePriceList
 
 
+@tagged('at_install', '-post_install')  # LEGACY at_install
 class TestWebsiteAllPerformance(TestWebsitePerformanceCommon, TestWebsitePriceList, WebsiteSaleCommon):
 
     @classmethod
@@ -68,13 +72,13 @@ class TestWebsiteAllPerformance(TestWebsitePerformanceCommon, TestWebsitePriceLi
         f = io.BytesIO()
         Image.new('RGB', (1920, 1080), '#4169E1').save(f, 'JPEG')
         f.seek(0)
-        blue_image = base64.b64encode(f.read())
+        blue_image = BinaryBytes(f.read())
 
         # second image (red) for the variant 1
         f = io.BytesIO()
         Image.new('RGB', (800, 500), '#FF69E1').save(f, 'JPEG')
         f.seek(0)
-        red_image = base64.b64encode(f.read())
+        red_image = BinaryBytes(f.read())
 
         cls.productA = cls.env['product.product'].create({
             'name': 'Product A',
@@ -224,7 +228,6 @@ class TestWebsiteAllPerformance(TestWebsitePerformanceCommon, TestWebsitePriceLi
 
         select_tables_perf = {
             # website queries
-            'orm_signaling_registry': 1,
             'ir_attachment': 1,
             # website_livechat _post_process_response_from_cache queries
             'website': 1,
@@ -242,7 +245,7 @@ class TestWebsiteAllPerformance(TestWebsitePerformanceCommon, TestWebsitePriceLi
                 "product_template_id": self.productC.product_tmpl_id.id,
                 "product_id": self.productC.id,
                 "quantity": 1,
-                "uom_id": 1,
+                "uom_id": self.productC.uom_id.id,
                 "product_custom_attribute_values": [],
                 "no_variant_attribute_value_ids": [],
                 "linked_products": []
@@ -251,7 +254,6 @@ class TestWebsiteAllPerformance(TestWebsitePerformanceCommon, TestWebsitePriceLi
         self.assertEqual(self._get_cart_quantity(), 1)
         select_tables_perf = {
             # website queries
-            'orm_signaling_registry': 1,
             'ir_attachment': 1,
             # website_livechat _post_process_response_from_cache queries
             'website': 1,
@@ -275,7 +277,6 @@ class TestWebsiteAllPerformance(TestWebsitePerformanceCommon, TestWebsitePriceLi
         self.assertEqual(self._get_cart_quantity(), 0)
         select_tables_perf = {
             # website queries
-            'orm_signaling_registry': 1,
             'ir_attachment': 1,
             # website_livechat _post_process_response_from_cache queries
             'website': 1,
@@ -291,21 +292,20 @@ class TestWebsiteAllPerformance(TestWebsitePerformanceCommon, TestWebsitePriceLi
         self.assertIn(f'<img src="/web/image/product.template/{self.productA.product_tmpl_id.id}/', html)
         self.assertIn(f'<img src="/web/image/product.image/{self.product_images.ids[1]}/', html)
 
-        query_count = 51  # To increase this number you must ask the permission to al
+        query_count = 41  # To increase this number you must ask the permission to al
         queries = {
-            'orm_signaling_registry': 1,
-            'website': 2,
+            'website': 1,
             'res_company': 2,
             'product_pricelist': 4,
-            'product_template': 5,
+            'product_template': 3,
             'product_tag': 1,
-            'product_public_category': 6,
+            'product_public_category': 2,
             'product_product': 1,
-            'product_template_attribute_line': 3,
+            'product_template_attribute_line': 2,
             'res_users': 1,
             'res_partner': 2,
             'product_category': 1,
-            'product_pricelist_item': 2,
+            'product_pricelist_item': 1,
             'account_tax': 1,
             'res_currency': 1,
             'account_account_tag': 1,
@@ -328,20 +328,24 @@ class TestWebsiteAllPerformance(TestWebsitePerformanceCommon, TestWebsitePriceLi
             query_count += 1
             queries['product_product'] += 1
 
-        tax = self.env.ref('account.1_sale_tax_template', raise_if_not_found=False)
+        tax = self.env.ref(f'account.{self.env.company.id}_sale_tax_template', raise_if_not_found=False)
         if tax and tax.name == '15%':
             query_count += 2
             queries['account_tax_repartition_line'] = 2
 
         if self._has_demo_data():
             query_count += 5
-            queries['product_template'] += 1
             queries['product_product'] += 2
             queries['ir_attachment'] += 1
             queries['product_ribbon'] += 1
+            queries['res_company'] += 1
         else:
             query_count += 3
             queries['product_template_attribute_value'] += 3
+
+        if self.env['res.groups']._is_feature_enabled('uom.group_uom'):
+            query_count += 1
+            queries['uom_uom'] = 1
 
         # To increase the query count you must ask the permission to al
         return query_count, queries
@@ -354,9 +358,11 @@ class TestWebsiteAllPerformance(TestWebsitePerformanceCommon, TestWebsitePriceLi
         query_count, queries = self._get_queries_shop()
 
         if self._has_demo_data():
-            query_count += 5
+            query_count += 2
             queries['account_tax'] += 1
-            queries['account_account_tag'] += 2
+            queries['account_account_tag'] += 1
+            queries['ir_attachment'] += -1
+            queries['product_ribbon'] += -1
             queries['product_template_attribute_value'] += 2
 
         self.assertEqual(sum(queries.values()), query_count, 'Please learn to count.')
@@ -370,12 +376,17 @@ class TestWebsiteAllPerformanceShop(TestWebsiteAllPerformance):
         # To increase the query count you must ask the permission to al
         query_count, queries = self._get_queries_shop()
 
-        query_count += 3
+        query_count += 2
         queries['account_tax'] += 1
-        queries['account_account_tag'] += 2
+        queries['account_account_tag'] += 1
+
+        if self.env['res.groups']._is_feature_enabled('uom.group_uom'):
+            query_count += 1
+            queries['uom_uom'] += 1
 
         if self._has_demo_data():
-            query_count += 2
+            query_count += 1
+            queries['ir_attachment'] += -1
             queries['product_template_attribute_value'] += 2
 
         self.assertEqual(sum(queries.values()), query_count, 'Please learn to count.')

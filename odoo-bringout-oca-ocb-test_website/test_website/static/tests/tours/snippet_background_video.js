@@ -7,9 +7,9 @@ import { insertSnippet, registerWebsitePreviewTour } from "@website/js/tours/tou
 registerWebsitePreviewTour(
     "snippet_background_video",
     {
-        url: "/",
         edition: true,
-    }, () => [
+    },
+    () => [
         {
             trigger: "body",
             run: function () {
@@ -31,10 +31,10 @@ registerWebsitePreviewTour(
                         });
                     },
                     async _getVideoURLData(src, options) {
-                        if (src === '/hello/world.mp4') {
+                        if (src === "/hello/world.mp4") {
                             return {
-                                'platform': 'vimeo',
-                                'embed_url': 'about:blank',
+                                platform: "vimeo",
+                                embed_url: "about:blank",
                             };
                         }
                         return super._getVideoURLData(...arguments);
@@ -77,7 +77,8 @@ registerWebsitePreviewTour(
         },
         {
             content: "Check that the video container is not editable.",
-            trigger: ":iframe #wrap section.o_background_video > .o_bg_video_container[contenteditable=false]",
+            trigger:
+                ":iframe #wrap section.o_background_video > .o_bg_video_container[contenteditable=false]",
         },
     ]
 );

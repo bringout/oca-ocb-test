@@ -22,7 +22,7 @@ class BaseFollowersTest(MailCommon):
     @classmethod
     def setUpClass(cls):
         super(BaseFollowersTest, cls).setUpClass()
-        cls.test_record = cls.env['mail.test.simple'].with_context(cls._test_context).create({'name': 'Test', 'email_from': 'ignasse@example.com'})
+        cls.test_record = cls.env['mail.test.simple'].create({'name': 'Test', 'email_from': 'ignasse@example.com'})
         cls._create_portal_user()
 
         Subtype = cls.env['mail.message.subtype']
@@ -437,7 +437,7 @@ class AdvancedFollowersTest(MailCommon):
 
         Inactive partners should not be auto subscribed.
         """
-        container = self.env['mail.test.container'].with_context(self._test_context).create({
+        container = self.env['mail.test.container'].create({
             'name': 'Project-Like',
         })
 
@@ -888,9 +888,9 @@ class UnfollowLinkTest(MailCommon, HttpCase):
         super().setUpClass()
         cls.user_portal = cls._create_portal_user()
         cls.partner_portal = cls.user_portal.partner_id
-        cls.test_record = cls.env['mail.test.simple'].with_context(cls._test_context).create({'name': 'Test'})
+        cls.test_record = cls.env['mail.test.simple'].create({'name': 'Test'})
         cls.test_record_copy = cls.test_record.copy()
-        cls.test_record_unfollow = cls.env['mail.test.simple.unfollow'].with_context(cls._test_context).create(
+        cls.test_record_unfollow = cls.env['mail.test.simple.unfollow'].create(
             {'name': 'unfollow'})
         cls.partner_without_user = cls.env['res.partner'].create({
             'name': 'Dave',
@@ -978,9 +978,9 @@ class UnfollowLinkTest(MailCommon, HttpCase):
         )
         # The user doesn't follow the record
         self.authenticate(self.env.user.login, self.env.user.login)
-        message_data = self.make_jsonrpc_request("/mail/inbox/messages")["data"]
-        self.assertFalse(message_data["mail.thread"][0]["selfFollower"])
-        self.assertFalse(message_data.get("mail.followers"), "Should not have void followers data")
+        data = self.make_jsonrpc_request("/mail/store", {"fetch_params": ["/mail/inbox/messages"]})
+        self.assertFalse(data["mail.thread"][0]["selfFollower"])
+        self.assertFalse(data.get("mail.followers"), "Should not have void followers data")
         self.assertFalse(test_record.with_user(self.user_employee).message_is_follower)
 
         # The user follows the record
@@ -988,15 +988,15 @@ class UnfollowLinkTest(MailCommon, HttpCase):
         follower = test_record.message_follower_ids.filtered(
             lambda follower: follower.partner_id == self.env.user.partner_id
         )
-        message_data = self.make_jsonrpc_request("/mail/inbox/messages")["data"]
-        self.assertEqual(message_data["mail.followers"], [
+        data = self.make_jsonrpc_request("/mail/store", {"fetch_params": ["/mail/inbox/messages"]})
+        self.assertEqual(data["mail.followers"], [
             {
                 "id": follower.id,
                 "is_active": True,
                 "partner_id": self.env.user.partner_id.id,
             },
         ])
-        self.assertEqual(message_data["mail.thread"][0]["selfFollower"], follower.id, "Should have follower ID")
+        self.assertEqual(data["mail.thread"][0]["selfFollower"], follower.id, "Should have follower ID")
 
     @mute_logger('odoo.addons.base.models', 'odoo.addons.mail.controllers.mail', 'odoo.http', 'odoo.models')
     def test_notification_email_unfollow_link(self):

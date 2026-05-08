@@ -1,11 +1,13 @@
 import { registry } from "@web/core/registry";
 
 registry.category("web_tour.tours").add("chatbot_redirect_to_portal", {
-    url: "/contactus",
     steps: () => [
         {
             trigger: ".o-livechat-root:shadow .o-livechat-LivechatButton",
             run: "click",
+        },
+        {
+            trigger: ".o-livechat-root:shadow .o-mail-ChatWindow-header:contains(Redirection Bot)",
         },
         {
             trigger:

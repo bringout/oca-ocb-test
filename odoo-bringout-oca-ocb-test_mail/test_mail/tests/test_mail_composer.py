@@ -1,21 +1,19 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-import base64
 import json
+import lxml.html
 
 from ast import literal_eval
 from datetime import timedelta
 from itertools import chain, product
 from unittest.mock import patch
 
-from odoo import Command
 from odoo.addons.base.tests.test_ir_cron import CronMixinCase
 from odoo.addons.mail.tests.common import mail_new_test_user, MailCommon
 from odoo.addons.mail.wizard.mail_compose_message import MailComposeMessage
 from odoo.addons.test_mail.models.mail_test_ticket import MailTestTicket
 from odoo.addons.test_mail.tests.common import TestRecipients
-from odoo.fields import Datetime as FieldDatetime
+from odoo.fields import Command, Datetime as FieldDatetime, Domain
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import Form, tagged, users
 from odoo.tools import email_normalize, mute_logger, formataddr
@@ -50,7 +48,7 @@ class TestMailComposer(MailCommon, TestRecipients):
         cls.env.ref('mail.group_mail_template_editor').write({'implied_by_ids': [Command.clear()]})
 
         with cls.mock_datetime_and_now(cls, cls.reference_now):
-            cls.test_record = cls.env['mail.test.ticket.mc'].with_context(cls._test_context).create({
+            cls.test_record = cls.env['mail.test.ticket.mc'].create({
                 'name': 'TestRecord',
                 'customer_id': cls.partner_1.id,
                 'user_id': cls.user_employee_2.id,
@@ -88,7 +86,7 @@ class TestMailComposer(MailCommon, TestRecipients):
             'auto_delete': True,
             'name': 'TestTemplate',
             'subject': 'TemplateSubject {{ object.name }}',
-            'body_html': '<p>TemplateBody <t t-esc="object.name"></t></p>',
+            'body_html': '<p>TemplateBody <t t-out="object.name"></t></p>',
             'partner_to': '{{ object.customer_id.id if object.customer_id else "" }}',
             'email_to': '{{ (object.email_from if not object.customer_id else "") }}',
             'email_from': '{{ (object.user_id.email_formatted or user.email_formatted) }}',
@@ -221,7 +219,7 @@ class TestComposerForm(TestMailComposer):
         self.assertEqual(len(composer_form.attachment_ids), 4)
         report_attachments = [att for att in composer_form.attachment_ids if att not in template_1_attachments]
         self.assertEqual(len(report_attachments), 2)
-        tpl_attachments = composer_form.attachment_ids[:] - self.env['ir.attachment'].concat(*report_attachments)
+        tpl_attachments = composer_form.attachment_ids[:] - self.env['ir.attachment'].concat(report_attachments)
         self.assertEqual(tpl_attachments, template_1_attachments)
 
         # change template: 0 static (attachment_ids) and 1 dynamic (report)
@@ -229,7 +227,7 @@ class TestComposerForm(TestMailComposer):
         self.assertEqual(len(composer_form.attachment_ids), 1)
         report_attachments = [att for att in composer_form.attachment_ids if att not in template_1_attachments]
         self.assertEqual(len(report_attachments), 1)
-        tpl_attachments = composer_form.attachment_ids[:] - self.env['ir.attachment'].concat(*report_attachments)
+        tpl_attachments = composer_form.attachment_ids[:] - self.env['ir.attachment'].concat(report_attachments)
         self.assertFalse(tpl_attachments)
 
         # change back to template 1
@@ -237,7 +235,7 @@ class TestComposerForm(TestMailComposer):
         self.assertEqual(len(composer_form.attachment_ids), 4)
         report_attachments = [att for att in composer_form.attachment_ids if att not in template_1_attachments]
         self.assertEqual(len(report_attachments), 2)
-        tpl_attachments = composer_form.attachment_ids[:] - self.env['ir.attachment'].concat(*report_attachments)
+        tpl_attachments = composer_form.attachment_ids[:] - self.env['ir.attachment'].concat(report_attachments)
         self.assertEqual(tpl_attachments, template_1_attachments)
 
         # reset template
@@ -275,6 +273,31 @@ class TestComposerForm(TestMailComposer):
         self.assertEqual(composer_form.subtype_id, self.env.ref('mail.mt_comment'))
         self.assertFalse(composer_form.subtype_is_log)
 
+    def test_mail_composer_form_attachments_in_body(self):
+        # Only 1 attachment won't trigger the warning but 2 attachments will
+        # because one of them is in the body, we should not show the warning
+        self.env['ir.config_parameter'].set_float('base.default_max_email_size', 19)
+        attachments = self.env['ir.attachment'].create([{
+            "name": "test",
+            "raw": b"a" * 10 * 1024 * 1024,
+        } for _ in range(2)])
+        self.assertEqual(attachments.mapped("file_size"), [10 * 1024 * 1024, 10 * 1024 * 1024])
+
+        composer_form = Form(
+            self.env['mail.compose.message'].with_context({
+                'default_composition_mode': 'comment',
+                'default_model': self.test_record._name,
+                'default_res_ids': self.test_record.ids,
+            })
+        )
+        composer_form.body = f'<a href="/web/content/{attachments[0].id}"/>'
+        composer_form.attachment_ids = attachments
+        self.assertFalse(composer_form.attachment_links_info)
+
+        # Now no attachment are in the body, the limit is reached
+        composer_form.body = 'No attachment in body'
+        self.assertIn("Your attachments exceed", composer_form.attachment_links_info or "")
+
     @users('employee')
     def test_mail_composer_comment_wtpl(self):
         composer_form = Form(self.env['mail.compose.message'].with_context(
@@ -305,6 +328,33 @@ class TestComposerForm(TestMailComposer):
         self.assertEqual(composer_form.subject, f'TemplateSubject {self.test_record.name}')
         self.assertEqual(composer_form.subtype_id, self.env.ref('mail.mt_comment'))
         self.assertFalse(composer_form.subtype_is_log)
+
+    @users('employee')
+    def test_mail_composer_comment_wtpl_signature_only(self):
+        """Signature-only body loads user default template; otherwise keeps signature."""
+        composer_form = Form(self.env['mail.compose.message'].with_context(
+            self._get_web_context(
+                self.test_records,
+                add_web=True,
+                default_body='<p data-o-mail-quote="1">--<br data-o-mail-quote="1"/>Signature</p>',
+                body_contains_signature_only=True,
+            )
+        ))
+        self.assertEqual(composer_form.body, '<p data-o-mail-quote="1">--<br data-o-mail-quote="1"/>Signature</p>')
+
+        # Now with user default template
+        self.env['ir.default'].sudo().set(
+            'mail.compose.message', 'template_id', self.template.id
+        )
+        composer_form = Form(self.env['mail.compose.message'].with_context(
+            self._get_web_context(
+                self.test_record,
+                add_web=True,
+                default_body='<p data-o-mail-quote="1">--<br data-o-mail-quote="1"/>Signature</p>',
+                body_contains_signature_only=True,
+            )
+        ))
+        self.assertEqual(composer_form.body, f'<p>TemplateBody {self.test_record.name}</p>')
 
     @users('employee')
     def test_mail_composer_comment_wtpl_batch(self):
@@ -605,7 +655,7 @@ class TestComposerInternals(TestMailComposer):
         attachs = self.env['ir.attachment'].sudo().search([('name', 'in', [a['name'] for a in attachment_data])])
         self.assertEqual(len(attachs), 3)
         extra_attach = self.env['ir.attachment'].create({
-            'datas': base64.b64encode(b'ExtraData'),
+            'raw': b'ExtraData',
             'mimetype': 'text/plain',
             'name': 'ExtraAttFileName.txt',
             'res_model': False,
@@ -1233,7 +1283,7 @@ class TestComposerInternals(TestMailComposer):
         self.test_record.message_subscribe(partner_ids=portal_user.partner_id.ids)
 
         # patch check access rights for write access, required to post a message by default
-        with patch.object(MailTestTicket, '_check_access', return_value=None):
+        with patch.object(MailTestTicket, '_access_domain', return_value=Domain.TRUE):
             with self.assertRaises(AccessError):
                 # ensure portal can not send messages
                 self.env['mail.compose.message'].with_user(portal_user).with_context(
@@ -1246,23 +1296,73 @@ class TestComposerInternals(TestMailComposer):
 
     @users('employee')
     def test_mail_composer_save_template(self):
-        self.env['mail.compose.message'].with_context(
+        cases = [
+            ('<p>Template Body</p>', None, 'Basic template'),
+            ('''
+            <div class="o_mail_reply_container">
+                <p>&lt;John&gt; "John@local.lan" wrote on 2005-01-01:</p>
+                <div>Oh, Hi Bob</div>
+            </div>
+            ''', '<div></div>', 'Reply-only Template'),
+            ('''
+            <p>We will get back to you in a few days.</p>
+            <div class="o_mail_reply_container">
+                <p>&lt;John&gt; "John@local.lan" wrote on 2005-01-01:</p>
+                <div>Oh, Hi Bob</div>
+            </div>
+            <div data-o-mail-quote-container="1">
+                <br>
+                <div data-o-mail-quote="1" class="o-signature-container">
+                    <div data-o-mail-quote="1">
+                        <br data-o-mail-quote="1">--
+                        Bob, of Lancaster
+                    </div>
+                </div>
+            </div>
+            ''',
+            '''
+            <div><p>We will get back to you in a few days.</p>
+            <div data-o-mail-quote-container="1">
+                <br>
+                <div data-o-mail-quote="1" class="o-signature-container">
+                    <div data-o-mail-quote="1">
+                        <br data-o-mail-quote="1">--
+                        Bob, of Lancaster
+                    </div>
+                </div>
+            </div>
+            </div>''',
+            'Reply-included Template'
+            ),
+        ]
+        composer = self.env['mail.compose.message'].with_context(
             self._get_web_context(self.test_record, add_web=False)
         ).create({
-            'template_name': 'My Template',
             'subject': 'Template Subject',
-            'body': '<p>Template Body</p>',
-        }).create_mail_template()
+        })
+        for input_body, template_body, case_name in cases:
+            with self.subTest(case=case_name):
+                composer.write({
+                    'body': input_body,
+                    'template_name': case_name,
+                })
+                composer.create_mail_template()
 
-        # Test: email_template subject, body_html, model
-        template = self.env['mail.template'].search([
-            ('model', '=', self.test_record._name),
-            ('name', '=', 'My Template')
-        ], limit=1)
+                template = composer.template_id
 
-        self.assertEqual(template.name, 'My Template')
-        self.assertFalse(template.subject)
-        self.assertEqual(template.body_html, '<p>Template Body</p>', 'email_template incorrect body_html')
+                self.assertEqual(template.name, case_name)
+                self.assertFalse(template.subject)
+                self.assertEqual(
+                    lxml.html.tostring(lxml.html.fromstring(str(template.body_html))).decode(),
+                    lxml.html.tostring(lxml.html.fromstring(template_body if template_body is not None else input_body)).decode(),
+                    'The template should remove all content that was hidden in the composer preview.'
+                    'Unless the composer preview only contained that hidden element.'
+                )
+                self.assertEqual(
+                    lxml.html.tostring(lxml.html.fromstring(str(composer.body))).decode(),
+                    lxml.html.tostring(lxml.html.fromstring(input_body)).decode(),
+                    'The composer body should not change after saving a template.'
+                )
 
     @users('employee')
     def test_mail_composer_schedule_message(self):
@@ -1801,7 +1901,7 @@ class TestComposerResultsComment(TestMailComposer, CronMixinCase):
                 default_from = mail_config.get('default_from', self.default_from)
                 from_filter = mail_config.get('from_filter', self.default_from_filter)
                 self.mail_alias_domain.default_from = default_from
-                self.env['ir.config_parameter'].sudo().set_param('mail.default.from_filter', from_filter)
+                self.env['ir.config_parameter'].sudo().set_str('mail.default.from_filter', from_filter)
 
                 for email_from, exp_smtp_from, exp_msg_from in zip(emails_from, exp_smtp_from_lst, exp_msg_from_lst):
                     self.env.user.email = email_from
@@ -2655,7 +2755,7 @@ class TestComposerResultsMass(TestMailComposer):
         # add access to Mail Template Editor
         self.user_employee.group_ids += self.env.ref('mail.group_mail_template_editor')
         # Access can also be made available to all users.
-        # self.env['ir.config_parameter'].sudo().set_param('mail.restrict.template.rendering', False)
+        # self.env['ir.config_parameter'].sudo().set_bool('mail.restrict.template.rendering', False)
 
         self.template.write({
             'auto_delete': False,
@@ -2670,7 +2770,7 @@ class TestComposerResultsMass(TestMailComposer):
         self.test_records[1].write({'count': 2, 'name': 'B'})
 
         template_attachment, composer_attachment = self.env['ir.attachment'].create([{
-            'datas': base64.b64encode(b'ExtraData'),
+            'raw': b'ExtraData',
             'mimetype': 'text/plain',
             'name': f'{record._name}_Common_Attachment.txt',
             'res_id': record.id if record else False,
@@ -2703,7 +2803,7 @@ class TestComposerResultsMass(TestMailComposer):
             'subject': 'Common Subject',
         }
         same_attachments = {'attachment_ids': template_attachment.ids}
-        diff_body = {'body_html': '<p><t t-esc="object.name"></t></p>'}
+        diff_body = {'body_html': '<p><t t-out="object.name"></t></p>'}
         # regardless of whether they have different bodies or not, they are considered duplicates
         diff_attachment_same_content = {'report_template_ids': [self.test_report_2.id]}
         diff_attachment_diff_content = {'report_template_ids': [self.test_report_3.id]}
@@ -2833,9 +2933,9 @@ class TestComposerResultsMass(TestMailComposer):
         )
         for (batch_size, send_limit), (exp_mail_create_count, exp_force_send, exp_state) in zip(
             [
-                (False, False),  # unset
+                (False, 100),  # unset
                 (8, 0),  # 0 = always use queue
-                (8, False),  # send limit defaults to 100, so force_send is set
+                (8, 100),  # send limit defaults to 100, so force_send is set
                 (0, 8),  # render: defaults to 500 hence 1 iteration in test
             ],
             [
@@ -2846,10 +2946,10 @@ class TestComposerResultsMass(TestMailComposer):
             ]
         ):
             with self.subTest(batch_size=batch_size, send_limit=send_limit):
-                self.env['ir.config_parameter'].sudo().set_param(
+                self.env['ir.config_parameter'].sudo().set_int(
                     "mail.batch_size", batch_size
                 )
-                self.env['ir.config_parameter'].sudo().set_param(
+                self.env['ir.config_parameter'].sudo().set_int(
                     "mail.mail.force.send.limit", send_limit
                 )
                 composer_form = Form(self.env['mail.compose.message'].with_context(
@@ -2914,7 +3014,7 @@ class TestComposerResultsMass(TestMailComposer):
             self.assertEqual(message.attachment_ids.res_model, record._name)
             self.assertEqual(message.attachment_ids.res_id, record.id)
             self.assertEqual(composer.attachment_ids.name, message.attachment_ids.name)
-            self.assertEqual(composer.attachment_ids.datas, message.attachment_ids.datas)
+            self.assertEqual(composer.attachment_ids.raw.content, message.attachment_ids.raw.content)
             # post-related fields are void
             self.assertFalse(message.subtype_id)
             self.assertFalse(message.partner_ids)
@@ -3312,7 +3412,7 @@ class TestComposerResultsMass(TestMailComposer):
         self.assertEqual(len(self._mails), 2, 'Should have sent 1 email per record based on  on active_ids')
 
         # 5: mail.batch_size config parameter support, for sending only
-        self.env['ir.config_parameter'].sudo().set_param('mail.batch_size', 1)
+        self.env['ir.config_parameter'].sudo().set_int('mail.batch_size', 1)
         with patch.object(MailComposeMessage, '_batch_size', new=50):
             composer_form = Form(self.env['mail.compose.message'].with_context(
                 active_ids=self.test_records.ids,

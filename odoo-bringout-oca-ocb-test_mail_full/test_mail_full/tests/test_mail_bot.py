@@ -7,12 +7,13 @@ from odoo.tools import mute_logger
 
 
 @tagged("odoobot")
+@tagged('at_install', '-post_install')  # LEGACY at_install
 class TestOdoobot(MailCommon, TestRecipients):
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.test_record = cls.env['mail.test.simple'].with_context(cls._test_context).create({'name': 'Test', 'email_from': 'ignasse@example.com'})
+        cls.test_record = cls.env['mail.test.simple'].create({'name': 'Test', 'email_from': 'ignasse@example.com'})
 
         cls.odoobot = cls.env.ref("base.partner_root")
         cls.message_post_default_kwargs = {
@@ -75,7 +76,7 @@ class TestOdoobot(MailCommon, TestRecipients):
         )
         kwargs['body'] = ''
         attachment = self.env['ir.attachment'].with_user(self.user_employee).create({
-            'datas': 'bWlncmF0aW9uIHRlc3Q=',
+            'raw': b'migration test',
             'name': 'picture_of_your_dog.doc',
             'res_model': 'mail.compose.message',
         })

@@ -302,7 +302,7 @@ if env.context.get('old_values', None): # on write only
                 'code': """
 if env.context.get('old_values', None):  # on write
     if 'user_id' in env.context['old_values'][record.id]:
-        record.write({'is_assigned_to_admin': (record.user_id.id == 1)})""",
+        record.write({'is_assigned_to_admin': (record.user_id == record.env.ref('base.user_root'))})""",
                 },
             )
 
@@ -1367,15 +1367,12 @@ class TestCompute(common.TransactionCase):
         """
         company1 = self.env['res.partner'].create({
             'name': "Gorofy",
-            'is_company': True,
         })
         company2 = self.env['res.partner'].create({
             'name': "Awiclo",
-            'is_company': True
         })
         r = self.env['res.partner'].create({
             'name': 'Bob',
-            'is_company': False,
             'parent_id': company1.id
         })
         self.assertEqual(r.display_name, 'Gorofy, Bob')
@@ -1495,7 +1492,7 @@ class TestCompute(common.TransactionCase):
         })
 
         ext_partner = self.env["res.partner"].create({"name": "ext", "email": "email@server.com"})
-        internal_partner = self.env["res.users"].browse(2).partner_id
+        internal_partner = self.env.ref('base.user_admin').partner_id
 
         obj = self.env["base.automation.lead.thread.test"].create({"name": "test"})
         obj.message_subscribe([ext_partner.id, internal_partner.id])
@@ -1558,7 +1555,7 @@ class TestCompute(common.TransactionCase):
         })
 
         ext_partner = self.env["res.partner"].create({"name": "ext", "email": "email@server.com"})
-        internal_partner = self.env["res.users"].browse(2).partner_id
+        internal_partner = self.env.ref('base.user_admin').partner_id
 
         obj = self.env["base.automation.lead.thread.test"].create({"name": "test"})
         obj.message_subscribe([ext_partner.id, internal_partner.id])
@@ -1738,63 +1735,6 @@ class TestCompute(common.TransactionCase):
         })
         assert_history(action, expected)
 
-    def test_server_action_code_history_wizard_with_no_timezone(self):
-        self.env.user.tz = False
-
-        def get_history(action):
-            return self.env["ir.actions.server.history"].search([("action_id", "=", action.id)])
-
-        def assert_history(action, expected):
-            history = get_history(action)
-            self.assertRecordValues(history, expected)
-
-        expected = []
-
-        with freeze_time("2025-05-01 10:00:00"):
-            self.env.cr._now = datetime.datetime.now()  # reset transaction's NOW
-            action = self.env["ir.actions.server"].create({
-                "name": "Test Action",
-                "model_id": self.env["ir.model"]._get("res.partner").id,
-                "state": "code",
-                "code": "pass",
-            })
-        expected.insert(0, {
-            "code": "pass",
-            "display_name": WhitespaceInsensitive(f"May 1, 2025, 10:00:00 AM - {self.env.ref('base.user_root').name}"),
-        })
-        assert_history(action, expected)
-
-        with freeze_time("2025-05-01 10:00:00"):
-            self.env.cr._now = datetime.datetime.now()  # reset transaction's NOW
-            action.with_user(self.env.ref('base.user_admin')).write({"code": "hello"})
-        expected.insert(0, {
-            "code": "hello",
-            "display_name": WhitespaceInsensitive(f"May 1, 2025, 10:00:00 AM - {self.env.ref('base.user_admin').name}"),
-        })
-        assert_history(action, expected)
-
-        with freeze_time("2025-05-12 10:00:00"):
-            self.env.cr._now = datetime.datetime.now()  # reset transaction's NOW
-            with Form(self.env['server.action.history.wizard'].with_context(default_action_id=action.id)) as wizard_form:
-                self.assertRecordValues(wizard_form.revision, [
-                    {
-                        "code": "pass",
-                        "display_name": WhitespaceInsensitive(f"May 1, 2025, 10:00:00 AM - {self.env.ref('base.user_root').name}"),
-                    }
-                ])
-                first_diff = str(wizard_form.code_diff)
-                wizard_form.revision = get_history(action)[-1]
-                second_diff = str(wizard_form.code_diff)
-                self.assertNotEqual(first_diff, second_diff)
-            wizard_form.record.restore_revision()
-
-        self.assertEqual(action.code, "pass")
-        expected.insert(0, {
-            "code": "pass",
-            "display_name": WhitespaceInsensitive(f"May 12, 2025, 10:00:00 AM - {self.env.ref('base.user_root').name}"),
-        })
-        assert_history(action, expected)
-
 
 @common.tagged("post_install", "-at_install")
 class TestHttp(common.HttpCase):
@@ -1866,7 +1806,7 @@ class TestHttp(common.HttpCase):
         self.cr.flush()
         with self.allow_requests(all_requests=True):
             self.cr.postcommit.run()  # webhooks run in postcommit
-        self.cr.clear()
+        self.cr.transaction.clear()
         self._wait_remaining_requests()  # just in case the request timeouts
         self.assertEqual(json.loads(obj.another_field), {
             '_action': f'Send Webhook Notification(#{automation_sender.action_server_ids[0].id})',

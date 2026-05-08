@@ -8,7 +8,6 @@ import {
 registerWebsitePreviewTour(
     "test_form_conditional_visibility_record_field",
     {
-        url: "/test_website/model_item/1",
         edition: true,
     },
     () => [
@@ -17,7 +16,7 @@ registerWebsitePreviewTour(
             trigger: ":iframe .s_website_form .s_website_form_input[name=name]",
             run: "click",
         },
-        ...changeOptionInPopover("Field", "Visibility", "Visible only if"),
+        ...changeOptionInPopover("Field", "Visibility Rule", "Visible only if"),
         {
             content: "Open model selector",
             trigger: "button[id='hidden_condition_record_opt']:contains('Test Tag')",
@@ -55,5 +54,5 @@ registerWebsitePreviewTour(
             content: "Name field is shown",
             trigger: ":iframe .s_website_form:has(.s_website_form_field_hidden_if:not(.d-none))",
         },
-    ],
+    ]
 );
