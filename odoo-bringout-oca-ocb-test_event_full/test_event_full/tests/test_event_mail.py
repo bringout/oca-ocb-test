@@ -5,11 +5,14 @@ from datetime import datetime, timedelta
 from freezegun import freeze_time
 
 from odoo.addons.mail.tests.common import MockEmail
-from odoo.addons.sms.tests.common import MockSMS
-from odoo.addons.test_event_full.tests.common import TestWEventCommon
+from odoo.addons.sms.tests.common import SMSCase
+from odoo.addons.test_event_full.tests.common import TestWEventCommon, TestEventFullCommon
 from odoo.exceptions import ValidationError
-from odoo.tools import mute_logger
+from odoo.tests import tagged
+from odoo.tools import formataddr
 
+
+@tagged('event_mail')
 class TestTemplateRefModel(TestWEventCommon):
 
     def test_template_ref_delete_lines(self):
@@ -52,7 +55,6 @@ class TestTemplateRefModel(TestWEventCommon):
         self.assertEqual(len(event.event_mail_ids.exists()), 0)
 
     def test_template_ref_model_constraint(self):
-
         test_cases = [
             ('mail', 'mail.template', True),
             ('mail', 'sms.template', False),
@@ -87,13 +89,13 @@ class TestTemplateRefModel(TestWEventCommon):
                     else:
                         self.assertEqual(str(cm.exception), 'The template which is referenced should be coming from sms.template model.')
 
-class TestEventSmsMailSchedule(TestWEventCommon, MockEmail, MockSMS):
+
+class TestEventSmsMailSchedule(TestWEventCommon, MockEmail, SMSCase):
 
     @freeze_time('2020-07-06 12:00:00')
-    @mute_logger('odoo.addons.base.models.ir_model', 'odoo.models')
     def test_event_mail_before_trigger_sent_count(self):
-        """ Emails are sent to both confirmed and unconfirmed attendees.
-        This test checks that the count of sent emails includes the emails sent to unconfirmed ones
+        """ Emails are only sent to confirmed attendees.
+        This test checks that the count of sent emails does not include the emails sent to unconfirmed ones.
 
         Time in the test is frozen to simulate the following state:
 
@@ -115,7 +117,6 @@ class TestEventSmsMailSchedule(TestWEventCommon, MockEmail, MockSMS):
         test_event = self.env['event.event'].create({
             'name': 'TestEventMail',
             # 'user_id': self.env.ref('base.user_admin').id,
-            'auto_confirm': False,
             'date_begin': datetime.now() + timedelta(hours=1),
             'date_end': datetime.now() + timedelta(hours=2),
             'event_mail_ids': [
@@ -136,32 +137,92 @@ class TestEventSmsMailSchedule(TestWEventCommon, MockEmail, MockSMS):
         self.assertEqual(len(mail_scheduler), 2, 'There should be two mail schedulers. One for mail one for sms. Cannot perform test')
 
         # Add registrations
-        self.env['event.registration'].create([{
+        _dummy, _dummy, open_reg, done_reg = self.env['event.registration'].create([{
             'event_id': test_event.id,
             'name': 'RegistrationUnconfirmed',
             'email': 'Registration@Unconfirmed.com',
+            'phone': '1',
             'state': 'draft',
         }, {
             'event_id': test_event.id,
             'name': 'RegistrationCanceled',
             'email': 'Registration@Canceled.com',
+            'phone': '2',
             'state': 'cancel',
         }, {
             'event_id': test_event.id,
             'name': 'RegistrationConfirmed',
             'email': 'Registration@Confirmed.com',
+            'phone': '3',
             'state': 'open',
+        }, {
+            'event_id': test_event.id,
+            'name': 'RegistrationDone',
+            'email': 'Registration@Done.com',
+            'phone': '4',
+            'state': 'done',
         }])
 
         with self.mock_mail_gateway(), self.mockSMSGateway():
             mail_scheduler.execute()
 
-        self.assertEqual(len(self._new_mails), 2, 'Mails were not created')
-        self.assertEqual(len(self._new_sms), 2, 'SMS were not created')
+        for registration in open_reg, done_reg:
+            with self.subTest(registration_state=registration.state, medium='mail'):
+                self.assertMailMailWEmails(
+                    [formataddr((registration.name, registration.email))],
+                    'outgoing',
+                )
+            with self.subTest(registration_state=registration.state, medium='mail'):
+                self.assertSMS(
+                    self.env['res.partner'],
+                    registration.phone,
+                    None,
+                )
+        self.assertEqual(len(self._new_mails), 2, 'Mails should not be sent to draft or cancel registrations')
+        self.assertEqual(len(self._new_sms), 2, 'SMS should not be sent to draft or cancel registrations')
 
-        self.assertEqual(test_event.seats_expected, 2, 'Wrong number of expected seats (attendees)')
+        self.assertEqual(test_event.seats_taken, 2, 'Wrong number of seats_taken')
 
         self.assertEqual(mail_scheduler.filtered(lambda r: r.notification_type == 'mail').mail_count_done, 2,
             'Wrong Emails Sent Count! Probably emails sent to unconfirmed attendees were not included into the Sent Count')
         self.assertEqual(mail_scheduler.filtered(lambda r: r.notification_type == 'sms').mail_count_done, 2,
             'Wrong SMS Sent Count! Probably SMS sent to unconfirmed attendees were not included into the Sent Count')
+
+
+@tagged('event_mail')
+class TestEventSaleMailSchedule(TestEventFullCommon):
+
+    def test_event_mail_on_sale_confirmation(self):
+        """Test that a mail is sent to the customer when a sale order is confirmed."""
+        ticket = self.test_event.event_ticket_ids[0]
+        order_line_vals = {
+            "event_id": self.test_event.id,
+            "event_ticket_id": ticket.id,
+            "product_id": ticket.product_id.id,
+            "product_uom_qty": 1,
+        }
+        self.customer_so.write({"order_line": [(0, 0, order_line_vals)]})
+
+        registration = self.env["event.registration"].create(
+            {
+                **self.website_customer_data[0],
+                "partner_id": self.event_customer.id,
+                "sale_order_line_id": self.customer_so.order_line[0].id,
+            }
+        )
+        self.assertEqual(self.test_event.registration_ids, registration)
+        self.assertEqual(self.customer_so.state, "draft")
+        self.assertEqual(registration.state, "draft")
+
+        with self.mock_mail_gateway():
+            self.customer_so.action_confirm()
+        self.assertEqual(self.customer_so.state, "sale")
+        self.assertEqual(registration.state, "open")
+
+        # Ensure mails are sent to customers right after subscription
+        self.assertMailMailWRecord(
+            registration,
+            [self.event_customer.id],
+            "outgoing",
+            author=self.env.user.company_id.partner_id,
+        )

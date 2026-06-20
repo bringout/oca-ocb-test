@@ -1,6 +1,5 @@
 /** @odoo-module **/
-
-import wTourUtils from 'website.tour_utils';
+import wTourUtils from '@website/js/tours/tour_utils';
 
 /**
  * The purpose of these tours is to check the systray visibility:
@@ -12,7 +11,7 @@ import wTourUtils from 'website.tour_utils';
  * - as an unrelated user (neither "tester" nor restricted editor)
  */
 
-const canPublish = [{
+const canPublish = () => [{
     content: 'Publish',
     trigger: '.o_menu_systray .o_menu_systray_item:contains("Unpublished")',
 }, {
@@ -28,21 +27,21 @@ const canPublish = [{
     run: () => {}, // This is a check.
 }];
 
-const cannotPublish = [{
+const cannotPublish = () => [{
     content: 'Check has no Publish/Unpublish',
     trigger: '.o_menu_systray:not(:has(.o_menu_systray_item:contains("ublished")))',
     run: () => {}, // This is a check.
 }];
 
-const canToggleMobilePreview = [{
+const canToggleMobilePreview = () => [{
     content: 'Enable mobile preview',
-    trigger: '.o_menu_systray .o_menu_systray_item.o_mobile_preview:not(.o_mobile_preview_active)',
+    trigger: '.o_menu_systray .o_menu_systray_item.o_mobile_preview:not(.o_mobile_preview_active) span',
 }, {
     content: 'Disable mobile preview',
-    trigger: '.o_menu_systray .o_menu_systray_item.o_mobile_preview.o_mobile_preview_active',
+    trigger: '.o_menu_systray .o_menu_systray_item.o_mobile_preview.o_mobile_preview_active span',
 }];
 
-const cannotToggleMobilePreview = [{
+const cannotToggleMobilePreview = () => [{
     content: 'Enable mobile preview',
     trigger: '.o_menu_systray:not(:has(.o_menu_systray_item.o_mobile_preview))',
     run: () => {}, // This is a check.
@@ -50,7 +49,7 @@ const cannotToggleMobilePreview = [{
 
 // For non-website users, switching across website only works if the domains are
 // specified. Within the scope of test tours, this cannot be achieved.
-const canSwitchWebsiteNoCheck = [{
+const canSwitchWebsiteNoCheck = () => [{
     content: 'Open website switcher',
     trigger: '.o_menu_systray .o_menu_systray_item.o_website_switcher_container .dropdown-toggle:contains("My Website"):not(:contains("My Website 2"))',
 }, {
@@ -60,7 +59,7 @@ const canSwitchWebsiteNoCheck = [{
 }];
 
 
-const canSwitchWebsite = [{
+const canSwitchWebsite = () => [{
     content: 'Open website switcher',
     trigger: '.o_menu_systray .o_menu_systray_item.o_website_switcher_container .dropdown-toggle:contains("My Website"):not(:contains("My Website 2"))',
 }, {
@@ -72,7 +71,7 @@ const canSwitchWebsite = [{
     run: () => {}, // This is a check.
 }];
 
-const canAddNewContent = [{
+const canAddNewContent = () => [{
     content: 'Open +New content',
     trigger: '.o_menu_systray .o_menu_systray_item.o_new_content_container',
 }, {
@@ -80,13 +79,13 @@ const canAddNewContent = [{
     trigger: '#o_new_content_menu_choices',
 }];
 
-const cannotAddNewContent = [{
+const cannotAddNewContent = () => [{
     content: 'No +New content',
     trigger: '.o_menu_systray:not(:has(.o_menu_systray_item.o_new_content_container))',
     run: () => {}, // This is a check.
 }];
 
-const canEditInBackEnd = [{
+const canEditInBackEnd = () => [{
     content: 'Edit in backend',
     trigger: '.o_menu_systray .o_website_edit_in_backend a',
 }, {
@@ -95,10 +94,10 @@ const canEditInBackEnd = [{
     run: () => {}, // This is a check.
 }, {
     content: 'Return to website',
-    trigger: '.oe_button_box .fa-globe',
+    trigger: '.o-form-buttonbox .fa-globe',
 }];
 
-const canViewInBackEnd = [{
+const canViewInBackEnd = () => [{
     content: 'Go to backend',
     trigger: '.o_menu_systray .o_website_edit_in_backend a',
 }, {
@@ -107,10 +106,10 @@ const canViewInBackEnd = [{
     run: () => {}, // This is a check.
 }, {
     content: 'Return to website',
-    trigger: '.oe_button_box .fa-globe',
+    trigger: '.o-form-buttonbox .fa-globe',
 }];
 
-const canEdit = [
+const canEdit = () => [
     ...wTourUtils.clickOnEditAndWaitEditMode(),
     {
         content: 'Click on name',
@@ -132,13 +131,13 @@ const canEdit = [
     },
 ];
 
-const cannotEdit = [{
+const cannotEdit = () => [{
     content: 'Check Edit is not available',
     trigger: '.o_menu_systray:not(:has(.o_edit_website_container))',
     run: () => {}, // This is a check.
 }];
 
-const canEditButCannotChange = [
+const canEditButCannotChange = () => [
     ...wTourUtils.clickOnEditAndWaitEditMode(),
     {
         content: 'Cannot change name',
@@ -154,47 +153,47 @@ const register = (title, steps) => {
     }, steps);
 };
 
-register('test_systray_admin', [
-    ...canPublish,
-    ...canToggleMobilePreview,
-    ...canSwitchWebsite,
-    ...canAddNewContent,
-    ...canEditInBackEnd,
-    ...canEdit,
+register('test_systray_admin', () => [
+    ...canPublish(),
+    ...canToggleMobilePreview(),
+    ...canSwitchWebsite(),
+    ...canAddNewContent(),
+    ...canEditInBackEnd(),
+    ...canEdit(),
 ]);
 
-register('test_systray_reditor_tester', [
-    ...canPublish,
-    ...canToggleMobilePreview,
-    ...canSwitchWebsite,
-    ...canAddNewContent,
-    ...canEditInBackEnd,
-    ...canEdit,
+register('test_systray_reditor_tester', () => [
+    ...canPublish(),
+    ...canToggleMobilePreview(),
+    ...canSwitchWebsite(),
+    ...canAddNewContent(),
+    ...canEditInBackEnd(),
+    ...canEdit(),
 ]);
 
-register('test_systray_reditor_not_tester', [
-    ...cannotPublish,
-    ...canToggleMobilePreview,
-    ...canSwitchWebsite,
-    ...canAddNewContent,
-    ...canViewInBackEnd,
-    ...canEditButCannotChange,
+register('test_systray_reditor_not_tester', () => [
+    ...cannotPublish(),
+    ...canToggleMobilePreview(),
+    ...canSwitchWebsite(),
+    ...canAddNewContent(),
+    ...canViewInBackEnd(),
+    ...canEditButCannotChange(),
 ]);
 
-register('test_systray_not_reditor_tester', [
-    ...canPublish,
-    ...cannotToggleMobilePreview,
-    ...canSwitchWebsiteNoCheck,
-    ...cannotAddNewContent,
-    ...canEditInBackEnd,
-    ...cannotEdit,
+register('test_systray_not_reditor_tester', () => [
+    ...canPublish(),
+    ...cannotToggleMobilePreview(),
+    ...canSwitchWebsiteNoCheck(),
+    ...cannotAddNewContent(),
+    ...canEditInBackEnd(),
+    ...cannotEdit(),
 ]);
 
-register('test_systray_not_reditor_not_tester', [
-    ...cannotPublish,
-    ...cannotToggleMobilePreview,
-    ...canSwitchWebsiteNoCheck,
-    ...cannotAddNewContent,
-    ...canViewInBackEnd,
-    ...cannotEdit,
+register('test_systray_not_reditor_not_tester', () => [
+    ...cannotPublish(),
+    ...cannotToggleMobilePreview(),
+    ...canSwitchWebsiteNoCheck(),
+    ...cannotAddNewContent(),
+    ...canViewInBackEnd(),
+    ...cannotEdit(),
 ]);

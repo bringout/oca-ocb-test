@@ -13,7 +13,13 @@ tests independently to functional aspects of other models.""",
     'depends': ['base_automation'],
     'data': [
         'security/ir.model.access.csv',
+        'data/mail_template_data.xml',
     ],
+    'assets': {
+        'web.assets_tests': [
+            'test_base_automation/static/tests/**/*',
+        ],
+    },
     'installable': True,
     'license': 'LGPL-3',
 }

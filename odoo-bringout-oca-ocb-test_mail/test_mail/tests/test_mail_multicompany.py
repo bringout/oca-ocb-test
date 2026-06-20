@@ -10,19 +10,18 @@ from unittest.mock import patch
 from werkzeug.urls import url_parse, url_decode
 
 from odoo.addons.mail.models.mail_message import Message
-from odoo.addons.test_mail.tests.common import TestMailCommon, TestRecipients
+from odoo.addons.mail.tests.common import MailCommon, mail_new_test_user
+from odoo.addons.test_mail.tests.common import TestRecipients
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged, users, HttpCase
-from odoo.tools import formataddr, mute_logger
+from odoo.tools import mute_logger
 
 
-@tagged('multi_company')
-class TestMultiCompanySetup(TestMailCommon, TestRecipients):
+class TestMailMCCommon(MailCommon, TestRecipients):
 
     @classmethod
     def setUpClass(cls):
-        super(TestMultiCompanySetup, cls).setUpClass()
-        cls._activate_multi_company()
+        super().setUpClass()
 
         cls.test_model = cls.env['ir.model']._get('mail.test.gateway')
         cls.email_from = '"Sylvie Lelitre" <test.sylvie.lelitre@agrolait.com>'
@@ -38,17 +37,16 @@ class TestMultiCompanySetup(TestMailCommon, TestRecipients):
              'company_id': cls.user_employee_c2.company_id.id},
         ])
 
-        cls.company_3 = cls.env['res.company'].create({'name': 'ELIT'})
         cls.partner_1 = cls.env['res.partner'].with_context(cls._test_context).create({
             'name': 'Valid Lelitre',
             'email': 'valid.lelitre@agrolait.com',
         })
         # groups@.. will cause the creation of new mail.test.gateway
-        cls.alias = cls.env['mail.alias'].create({
-            'alias_name': 'groups',
-            'alias_user_id': False,
+        cls.mail_alias = cls.env['mail.alias'].create({
+            'alias_contact': 'everyone',
             'alias_model_id': cls.test_model.id,
-            'alias_contact': 'everyone'})
+            'alias_name': 'groups',
+        })
 
         # Set a first message on public group to test update and hierarchy
         cls.fake_email = cls.env['mail.message'].create({
@@ -61,11 +59,23 @@ class TestMultiCompanySetup(TestMailCommon, TestRecipients):
             'message_id': '<123456-openerp-%s-mail.test.gateway@%s>' % (cls.test_record.id, socket.gethostname()),
         })
 
+        cls._create_portal_user()
+        cls.user_portal_c2 = mail_new_test_user(
+            cls.env,
+            groups='base.group_portal',
+            login='portal_user_c2',
+            company_id=cls.company_2.id,
+            name="Portal User C2",
+        )
+
     def setUp(self):
-        super(TestMultiCompanySetup, self).setUp()
+        super().setUp()
         # patch registry to simulate a ready environment
         self.patch(self.env.registry, 'ready', True)
-        self.flush_tracking()
+
+
+@tagged('multi_company')
+class TestMultiCompanySetup(TestMailMCCommon):
 
     @users('employee_c2')
     @mute_logger('odoo.addons.base.models.ir_rule')
@@ -85,26 +95,35 @@ class TestMultiCompanySetup(TestMailCommon, TestRecipients):
         with self.assertRaises(AccessError):
             test_record_c1.write({'name': 'Cannot Write'})
 
+        first_attachment = self.env['ir.attachment'].create({
+            'company_id': self.user_employee_c2.company_id.id,
+            'datas': base64.b64encode(b'First attachment'),
+            'mimetype': 'text/plain',
+            'name': 'TestAttachmentIDS.txt',
+            'res_model': 'mail.compose.message',
+            'res_id': 0,
+        })
+
         message = test_record_c1.message_post(
-            attachments=[('testAttachment', b'Test attachment')],
+            attachments=[('testAttachment', b'First attachment')],
+            attachment_ids=first_attachment.ids,
             body='My Body',
             message_type='comment',
             subtype_xmlid='mail.mt_comment',
         )
-        self.assertEqual(message.attachment_ids.mapped('name'), ['testAttachment'])
-        first_attachment = message.attachment_ids
+        self.assertTrue('testAttachment' in message.attachment_ids.mapped('name'))
         self.assertEqual(test_record_c1.message_main_attachment_id, first_attachment)
 
         new_attach = self.env['ir.attachment'].create({
             'company_id': self.user_employee_c2.company_id.id,
-            'datas': base64.b64encode(b'Test attachment'),
+            'datas': base64.b64encode(b'Second attachment'),
             'mimetype': 'text/plain',
             'name': 'TestAttachmentIDS.txt',
             'res_model': 'mail.compose.message',
             'res_id': 0,
         })
         message = test_record_c1.message_post(
-            attachments=[('testAttachment', b'Test attachment')],
+            attachments=[('testAttachment', b'Second attachment')],
             attachment_ids=new_attach.ids,
             body='My Body',
             message_type='comment',
@@ -244,65 +263,87 @@ class TestMultiCompanySetup(TestMailCommon, TestRecipients):
                 subtype_xmlid='mail.mt_comment',
             )
 
-    def test_systray_get_activities(self):
-        self.env["mail.activity"].search([]).unlink()
-        user_admin = self.user_admin.with_user(self.user_admin)
-        test_records = self.env["mail.test.multi.company.with.activity"].create(
-            [
-                {"name": "Test1", "company_id": user_admin.company_id.id},
-                {"name": "Test2", "company_id": self.company_2.id},
-            ]
-        )
-        test_records[0].activity_schedule("test_mail.mail_act_test_todo", user_id=user_admin.id)
-        test_records[1].activity_schedule("test_mail.mail_act_test_todo", user_id=user_admin.id)
-        test_activity = next(
-            a for a in user_admin.systray_get_activities()
-            if a['model'] == 'mail.test.multi.company.with.activity'
-        )
-        self.assertEqual(
-            test_activity,
-            {
-                "actions": [{"icon": "fa-clock-o", "name": "Summary"}],
-                "icon": "/base/static/description/icon.png",
-                "id": self.env["ir.model"]._get_id("mail.test.multi.company.with.activity"),
-                "model": "mail.test.multi.company.with.activity",
-                "name": "Test Multi Company Mail With Activity",
-                "overdue_count": 0,
-                "planned_count": 0,
-                "today_count": 2,
-                "total_count": 2,
-                "type": "activity",
-            }
-        )
-
-        test_activity = next(
-            a for a in user_admin.with_context(allowed_company_ids=[self.company_2.id]).systray_get_activities()
-            if a['model'] == 'mail.test.multi.company.with.activity'
-        )
-        self.assertEqual(
-            test_activity,
-            {
-                "actions": [{"icon": "fa-clock-o", "name": "Summary"}],
-                "icon": "/base/static/description/icon.png",
-                "id": self.env["ir.model"]._get_id("mail.test.multi.company.with.activity"),
-                "model": "mail.test.multi.company.with.activity",
-                "name": "Test Multi Company Mail With Activity",
-                "overdue_count": 0,
-                "planned_count": 0,
-                "today_count": 1,
-                "total_count": 1,
-                "type": "activity",
-            }
-        )
-
 
 @tagged('-at_install', 'post_install', 'multi_company', 'mail_controller')
-class TestMultiCompanyRedirect(TestMailCommon, HttpCase):
+class TestMultiCompanyControllers(TestMailMCCommon, HttpCase):
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestMultiCompanyRedirect, cls).setUpClass()
-        cls._activate_multi_company()
+    @mute_logger('odoo.http')
+    def test_mail_thread_data(self):
+        """ Test returned thread data, in MC environment, to test notably MC
+        access issues on partner, ACL support, ... """
+        customer_c3 = self.env["res.partner"].create({
+            "company_id": self.company_3.id,
+            "name": "C3 Customer",
+        })
+        record = self.env["mail.test.multi.company.read"].with_user(self.user_employee_c2).create({
+            "company_id": self.user_employee_c2.company_id.id,
+            "name": "Multi Company Record",
+        })
+        self.assertEqual(record.company_id, self.company_2)
+
+        record.message_subscribe(partner_ids=customer_c3.ids)
+        with self.assertRaises(UserError):
+            customer_c3.with_user(self.user_employee_c2).check_access_rule("read")
+
+        self.authenticate(self.user_employee_c2.login, self.user_employee_c2.login)
+        response = self.url_open(
+            url="/mail/thread/data",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(
+                {
+                    "params": {
+                        "thread_id": record.id,
+                        "thread_model": record._name,
+                        "request_list": ["followers"],
+                    }
+                },
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        result = json.loads(response.content)["result"]
+        self.assertEqual(len(result["followers"]), 2)
+        self.assertEqual(result["followersCount"], 2)
+        self.assertEqual(result["followers"][1]["partner"]["id"], customer_c3.id)
+        self.assertTrue(result["hasWriteAccess"])
+        self.assertTrue(result["hasReadAccess"])
+        self.assertTrue(result["canPostOnReadonly"])
+
+        # check read / write / post access info
+        for test_user, (has_w, has_r, can_post) in zip(
+            (self.user_portal, self.user_portal_c2, self.user_employee, self.user_admin),
+            (
+                (False, True, True),  # currently not really supported actually, should go through portal controllers
+                (False, True, True),  # currently not really supported actually, should go through portal controllers
+                (False, True, True),
+                (True, True, True),
+            ),
+        ):
+            with self.subTest(user_name=test_user.name):
+                self.authenticate(test_user.login, test_user.login)
+                response = self.url_open(
+                    url="/mail/thread/data",
+                    headers={"Content-Type": "application/json"},
+                    data=json.dumps(
+                        {
+                            "params": {
+                                "thread_id": record.id,
+                                "thread_model": record._name,
+                                "request_list": ["followers"],
+                            }
+                        },
+                    ),
+                )
+                # crash if calling using portal users -> dedicated portal routes currently
+                if test_user in self.user_portal + self.user_portal_c2:
+                    self.assertEqual(response.status_code, 200)  # not a crash, just skipped content
+                    self.assertNotIn("result", json.loads(response.content))
+                else:
+                    response.raise_for_status()
+                    result = json.loads(response.content)["result"]
+                    self.assertEqual(result["followersCount"], 2)
+                    self.assertEqual(result["hasWriteAccess"], has_w)
+                    self.assertEqual(result["hasReadAccess"], has_r)
+                    self.assertEqual(result["canPostOnReadonly"], can_post)
 
     def test_redirect_to_records(self):
         """ Test mail/view redirection in MC environment, notably cids being
@@ -399,38 +440,3 @@ class TestMultiCompanyRedirect(TestMailCommon, HttpCase):
                 self.assertEqual(response.status_code, 200)
                 decoded_fragment = url_decode(url_parse(response.url).fragment)
                 self.assertNotIn('cids', decoded_fragment)
-
-
-@tagged("-at_install", "post_install", "multi_company", "mail_controller")
-class TestMultiCompanyThreadData(TestMailCommon, HttpCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls._activate_multi_company()
-
-    def test_mail_thread_data_follower(self):
-        partner_portal = self.env["res.partner"].create(
-            {"company_id": self.company_3.id, "name": "portal partner"}
-        )
-        record = self.env["mail.test.multi.company"].create({"name": "Multi Company Record"})
-        record.message_subscribe(partner_ids=partner_portal.ids)
-        with self.assertRaises(UserError):
-            partner_portal.with_user(self.user_employee_c2).check_access_rule("read")
-        self.authenticate(self.user_employee_c2.login, self.user_employee_c2.login)
-        response = self.url_open(
-            url="/mail/thread/data",
-            headers={"Content-Type": "application/json"},
-            data=json.dumps(
-                {
-                    "params": {
-                        "thread_id": record.id,
-                        "thread_model": "mail.test.multi.company",
-                        "request_list": ["followers"],
-                    }
-                },
-            ),
-        )
-        self.assertEqual(response.status_code, 200)
-        followers = json.loads(response.content)["result"]["followers"]
-        self.assertEqual(len(followers), 1)
-        self.assertEqual(followers[0]["partner"]["id"], partner_portal.id)

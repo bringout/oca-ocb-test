@@ -1,8 +1,7 @@
-odoo.define('test_website_slides_full.tour.slide.certification.member', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var tour = require('web_tour.tour');
-const tourUtils = require('website_sale.tour_utils');
+import { registry } from "@web/core/registry";
+import tourUtils from '@website_sale/js/tours/tour_utils';
 
 /**
  * The purpose of this tour is to check the whole certification flow:
@@ -43,24 +42,9 @@ var buyCertificationSteps = [{
     trigger: 'a:contains("Add to Cart")'
 },
     tourUtils.goToCart(),
+    tourUtils.goToCheckout(),
+    ...tourUtils.payWithDemo(),
 {
-    content: 'eCommerce: Process Checkout',
-    trigger: 'a:contains("Process Checkout")'
-}, {
-    content: 'eCommerce: select Test payment provider',
-    trigger: '.o_payment_option_card:contains("Demo")'
-}, {
-    content: 'eCommerce: add card number',
-    trigger: 'input[name="customer_input"]',
-    run: 'text 4242424242424242'
-}, {
-    content: 'eCommerce: pay',
-    trigger: 'button[name="o_payment_submit_button"]'
-}, {
-    content: 'eCommerce: check that the payment is successful',
-    trigger: '.oe_website_sale_tx_status:contains("Your payment has been successfully processed.")',
-    run: function () {}
-}, {
     content: 'eCommerce: go back to e-learning home page',
     trigger: '.nav-link:contains("Courses")'
 }, {
@@ -154,10 +138,10 @@ var profileSteps = [{
     run: function () {}
 }];
 
-tour.register('certification_member', {
+registry.category("web_tour.tours").add('certification_member', {
     url: '/slides',
-    test: true
-}, [].concat(
+    test: true,
+    steps: () => [].concat(
         initTourSteps,
         buyCertificationSteps,
         failCertificationSteps,
@@ -171,6 +155,4 @@ tour.register('certification_member', {
         certificationCompletionSteps,
         profileSteps
     )
-);
-
 });

@@ -2,7 +2,6 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from werkzeug.urls import url_parse, url_decode, url_encode
-import json
 
 from odoo import http
 from odoo.addons.test_mail_full.tests.common import TestMailFullCommon
@@ -10,20 +9,19 @@ from odoo.addons.test_mail_sms.tests.common import TestSMSRecipients
 from odoo.exceptions import AccessError
 from odoo.tests import tagged, users
 from odoo.tests.common import HttpCase
-from odoo.tools import mute_logger
+from odoo.tools import html_escape, mute_logger
 
 
 @tagged('portal')
 class TestPortal(HttpCase, TestMailFullCommon, TestSMSRecipients):
 
     def setUp(self):
-        super(TestPortal, self).setUp()
+        super().setUp()
 
         self.record_portal = self.env['mail.test.portal'].create({
             'partner_id': self.partner_1.id,
             'name': 'Test Portal Record',
         })
-
         self.record_portal._portal_ensure_token()
 
 
@@ -86,24 +84,13 @@ class TestPortalControllers(TestPortal):
         """Test retrieving chatter messages through the portal controller"""
         self.authenticate(None, None)
         message_fetch_url = '/mail/chatter_fetch'
-        payload = json.dumps({
-            'jsonrpc': '2.0',
-            'method': 'call',
-            'id': 0,
-            'params': {
+
+        def get_chatter_message_count():
+            return self.make_jsonrpc_request(message_fetch_url, {
                 'res_model': 'mail.test.portal',
                 'res_id': self.record_portal.id,
                 'token': self.record_portal.access_token,
-            },
-        })
-
-        def get_chatter_message_count():
-            res = self.url_open(
-                url=message_fetch_url,
-                data=payload,
-                headers={'Content-Type': 'application/json'}
-            )
-            return res.json().get('result', {}).get('message_count', 0)
+            }).get('message_count', 0)
 
         self.assertEqual(get_chatter_message_count(), 0)
 
@@ -220,7 +207,7 @@ class TestPortalFlow(TestMailFullCommon, HttpCase):
         cls.record_url_no_model = f'{cls.record_portal.get_base_url()}/mail/view?model=this.should.not.exists&res_id=1'
 
         # find portal + auth data url
-        for group_name, group_func, group_data in cls.record_portal.sudo()._notify_get_recipients_groups(False):
+        for group_name, group_func, group_data in cls.record_portal.sudo()._notify_get_recipients_groups(False, False):
             if group_name == 'portal_customer' and group_func(cls.customer):
                 cls.record_portal_url_auth = group_data['button_access']['url']
                 break
@@ -251,9 +238,9 @@ class TestPortalFlow(TestMailFullCommon, HttpCase):
         cls.discuss_local_url = '/web#action=mail.action_discuss'
 
     def test_assert_initial_data(self):
-        """ Test some initial values. Test that record_access_url is a valid URL
+        """ Test some initial values. Test that record_portal_url_auth is a valid URL
         to view the record_portal and that record_access_url_wrong_token only differs
-        from record_access_url by a different access_token. """
+        from record_portal_url_auth by a different access_token. """
         self.record_internal.with_user(self.user_employee).check_access_rule('read')
         self.record_portal.with_user(self.user_employee).check_access_rule('read')
         self.record_read.with_user(self.user_employee).check_access_rule('read')
@@ -444,6 +431,63 @@ class TestPortalFlow(TestMailFullCommon, HttpCase):
                 path, '/web/login',
                 'Failed with %s - %s' % (model, res_id)
             )
+
+    def assert_URL(self, url, expected_path, expected_fragment_params=None, expected_query=None):
+        """Asserts that the URL has the expected path and if set, the expected fragment parameters and query."""
+        parsed_url = url_parse(url)
+        fragment_params = url_decode(parsed_url.fragment)
+        self.assertEqual(parsed_url.path, expected_path)
+        if expected_fragment_params:
+            for key, expected_value in expected_fragment_params.items():
+                self.assertEqual(fragment_params.get(key), expected_value,
+                                 f'Expected: "{key}={expected_value}" (for path: {expected_path})')
+        if expected_query:
+            self.assertEqual(expected_query, parsed_url.query,
+                             f'Expected: query="{expected_query}" (for path: {expected_path})')
+
+    @users('employee')
+    def test_send_message_to_customer(self):
+        """Same as test_send_message_to_customer_using_template but without a template."""
+        composer = self.env['mail.compose.message'].with_context(
+            self._get_mail_composer_web_context(
+                self.record_portal,
+                default_email_layout_xmlid='mail.mail_notification_layout_with_responsible_signature',
+            )
+        ).create({
+            'body': '<p>Hello Mathias Delvaux, your quotation is ready for review.</p>',
+            'partner_ids': self.customer.ids,
+            'subject': 'Your Quotation "a white table"',
+        })
+
+        with self.mock_mail_gateway(mail_unlink_sent=True):
+            composer._action_send_mail()
+
+        self.assertEqual(len(self._mails), 1)
+        self.assertIn(f'"{html_escape(self.record_portal_url_auth)}"', self._mails[0].get('body'))
+        # Check that the template is not used (not the same subject)
+        self.assertEqual('Your Quotation "a white table"', self._mails[0].get('subject'))
+        self.assertIn('Hello Mathias Delvaux', self._mails[0].get('body'))
+
+    @users('employee')
+    def test_send_message_to_customer_using_template(self):
+        """Send a mail to a customer without an account and check that it contains a link to view the record.
+
+        Other tests below check that that same link has the correct behavior.
+        This test follows the common use case by using a template while the next send the mail without a template."""
+        composer = self.env['mail.compose.message'].with_context(
+            self._get_mail_composer_web_context(
+                self.record_portal,
+                default_email_layout_xmlid='mail.mail_notification_layout_with_responsible_signature',
+                default_template_id=self.mail_template.id,
+            )
+        ).create({})
+
+        with self.mock_mail_gateway(mail_unlink_sent=True):
+            composer._action_send_mail()
+
+        self.assertEqual(len(self._mails), 1)
+        self.assertIn(f'"{html_escape(self.record_portal_url_auth)}"', self._mails[0].get('body'))
+        self.assertEqual(f'Your quotation "{self.record_portal.name}"', self._mails[0].get('subject'))  # Check that the template is used
 
 
 @tagged('portal')
