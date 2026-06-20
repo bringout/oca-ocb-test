@@ -31,7 +31,8 @@ class TestSystray(HttpCase):
                 </xpath>
             """
         })
-
+        # Remain on page when switching website
+        cls.env['website'].search([]).homepage_url = '/test_model/1'
 
     @mute_logger('odoo.addons.http_routing.models.ir_http', 'odoo.http')
     def test_01_admin(self):

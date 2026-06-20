@@ -12,13 +12,22 @@
         'calendar',
         'crm',
         'crm_livechat',
+        'hr_attendance',
+        'hr_fleet',
         'hr_holidays',
+        'hr_homeworking',
         'im_livechat',
         'mail',
         'mail_bot',
-        'note',
+        'project_todo',
         'website_livechat',
+        'website_slides',
     ],
+    "assets": {
+        "web.assets_tests": [
+            "test_discuss_full/static/tests/tours/*",
+        ],
+    },
     'installable': True,
     'license': 'LGPL-3',
 }

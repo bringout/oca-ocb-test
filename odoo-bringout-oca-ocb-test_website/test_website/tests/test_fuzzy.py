@@ -108,7 +108,7 @@ class TestAutoComplete(TransactionCase):
         test_page.name = 'testTotallyUnique'
 
         # Editor and Designer see pages in result
-        self._autocomplete_page('testTotallyUnique', 1, False)
+        self._autocomplete_page('testTotallyUnique', 1, None)
 
         test_page.visibility = 'connected'
         self._autocomplete_page('testTotallyUnique', 1, False)
@@ -141,3 +141,11 @@ class TestAutoComplete(TransactionCase):
 
         # restore website env for next tests
         self.website.env = self.env = saved_env
+
+    def test_indirect(self):
+        self._autocomplete('module', 2, 'model')
+        self._autocomplete('rechord', 1, 'record')
+        self._autocomplete('suborder', 1, 'submodel')
+        # Sub-sub-fields are currently not supported.
+        # Adapt expected result if this becomes a feature.
+        self._autocomplete('tagg', 0, "Not found")

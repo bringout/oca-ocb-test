@@ -28,13 +28,15 @@ real applications. """,
         'data/mail_message_subtype_data.xml',
         'security/ir.model.access.csv',
         'security/ir_rule_data.xml',
+        'views/test_portal_template.xml',
     ],
     'assets': {
-        'web.qunit_suite_tests': [
-            'test_mail_full/static/tests/qunit_suite_tests/*.js',
+        'web.assets_unit_tests': [
+            'test_mail_full/static/tests/**/*',
+            ('remove', 'test_mail_full/static/tests/tours/**/*'),
         ],
-        'web.tests_assets': [
-            'test_mail_full/static/tests/helpers/*.js',
+        'web.assets_tests': [
+            'test_mail_full/static/tests/tours/**/*',
         ],
     },
     'installable': True,

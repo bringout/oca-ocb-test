@@ -1,21 +1,23 @@
 [project]
 name = "odoo-bringout-oca-ocb-test_crm_full"
 version = "16.0.0"
-description = "Test Full Crm Flow - Odoo addon"
+description = "Test Full Crm Flow - 
+        Odoo addon
+        "
 authors = [
     { name = "Ernad Husremovic", email = "hernad@bring.out.ba" }
 ]
 dependencies = [
-    "odoo-bringout-oca-ocb-crm>=16.0.0",
-    "odoo-bringout-oca-ocb-crm_iap_enrich>=16.0.0",
-    "odoo-bringout-oca-ocb-crm_iap_mine>=16.0.0",
-    "odoo-bringout-oca-ocb-crm_sms>=16.0.0",
-    "odoo-bringout-oca-ocb-event_crm>=16.0.0",
-    "odoo-bringout-oca-ocb-sale_crm>=16.0.0",
-    "odoo-bringout-oca-ocb-website_crm>=16.0.0",
-    "odoo-bringout-oca-ocb-website_crm_iap_reveal>=16.0.0",
-    "odoo-bringout-oca-ocb-website_crm_partner_assign>=16.0.0",
-    "odoo-bringout-oca-ocb-website_crm_livechat>=16.0.0",
+    "odoo-bringout-oca-ocb-crm>=18.0.0",
+    "odoo-bringout-oca-ocb-crm_iap_enrich>=18.0.0",
+    "odoo-bringout-oca-ocb-crm_iap_mine>=18.0.0",
+    "odoo-bringout-oca-ocb-crm_sms>=18.0.0",
+    "odoo-bringout-oca-ocb-event_crm>=18.0.0",
+    "odoo-bringout-oca-ocb-sale_crm>=18.0.0",
+    "odoo-bringout-oca-ocb-website_crm>=18.0.0",
+    "odoo-bringout-oca-ocb-website_crm_iap_reveal>=18.0.0",
+    "odoo-bringout-oca-ocb-website_crm_partner_assign>=18.0.0",
+    "odoo-bringout-oca-ocb-website_crm_livechat>=18.0.0",
     "requests>=2.25.1"
 ]
 readme = "README.md"
@@ -25,14 +27,14 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Office/Business",
 ]
 
 [project.urls]
-homepage = "https://github.com/bringout/0"
-repository = "https://github.com/bringout/0"
+homepage = "https://git.hodi.ba/bringout/project-0"
+repository = "https://git.hodi.ba/bringout/project-0"
 
 [build-system]
 requires = ["hatchling"]

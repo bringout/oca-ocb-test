@@ -1,20 +1,26 @@
 [project]
 name = "odoo-bringout-oca-ocb-test_discuss_full"
 version = "16.0.0"
-description = "Test Discuss (full) - Test of Discuss with all possible overrides installed."
+description = "Test Discuss (full) - 
+        Test of Discuss with all possible overrides installed.
+        "
 authors = [
     { name = "Ernad Husremovic", email = "hernad@bring.out.ba" }
 ]
 dependencies = [
-    "odoo-bringout-oca-ocb-calendar>=16.0.0",
-    "odoo-bringout-oca-ocb-crm>=16.0.0",
-    "odoo-bringout-oca-ocb-crm_livechat>=16.0.0",
-    "odoo-bringout-oca-ocb-hr_holidays>=16.0.0",
-    "odoo-bringout-oca-ocb-im_livechat>=16.0.0",
-    "odoo-bringout-oca-ocb-mail>=16.0.0",
-    "odoo-bringout-oca-ocb-mail_bot>=16.0.0",
-    "odoo-bringout-oca-ocb-note>=16.0.0",
-    "odoo-bringout-oca-ocb-website_livechat>=16.0.0",
+    "odoo-bringout-oca-ocb-calendar>=18.0.0",
+    "odoo-bringout-oca-ocb-crm>=18.0.0",
+    "odoo-bringout-oca-ocb-crm_livechat>=18.0.0",
+    "odoo-bringout-oca-ocb-hr_attendance>=18.0.0",
+    "odoo-bringout-oca-ocb-hr_fleet>=18.0.0",
+    "odoo-bringout-oca-ocb-hr_holidays>=18.0.0",
+    "TODO_MAP-hr_homeworking>=18.0.0",
+    "odoo-bringout-oca-ocb-im_livechat>=18.0.0",
+    "odoo-bringout-oca-ocb-mail>=18.0.0",
+    "odoo-bringout-oca-ocb-mail_bot>=18.0.0",
+    "TODO_MAP-project_todo>=18.0.0",
+    "odoo-bringout-oca-ocb-website_livechat>=18.0.0",
+    "odoo-bringout-oca-ocb-website_slides>=18.0.0",
     "requests>=2.25.1"
 ]
 readme = "README.md"
@@ -24,14 +30,14 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Office/Business",
 ]
 
 [project.urls]
-homepage = "https://github.com/bringout/0"
-repository = "https://github.com/bringout/0"
+homepage = "https://git.hodi.ba/bringout/project-0"
+repository = "https://git.hodi.ba/bringout/project-0"
 
 [build-system]
 requires = ["hatchling"]
